@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<launch>
+
+    <node name="realsense_node" pkg="realsense_camera" type="realsense_camera_node" output="screen">
+    </node>
+    
+    <node name="realsense_rviz" pkg="rviz" type="rviz" args="-d $(find realsense_camera)/config/realsense.rviz" />
+
+</launch>
