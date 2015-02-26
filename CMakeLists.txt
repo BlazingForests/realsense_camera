@@ -25,6 +25,7 @@ find_package(PCL 1.7 REQUIRED COMPONENTS
     io
 )
 
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -141,6 +142,7 @@ add_executable(realsense_camera_node
   src/realsense_camera.cpp
   src/capturer_mmap.c
   src/v4l2-ctl-common.cpp
+  src/udev_unit.cpp
 )
 
 ## Add cmake target dependencies of the executable/library
@@ -157,6 +159,7 @@ target_link_libraries(realsense_camera_node
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
   ${PCL_LIBRARIES}
+  -ludev
 )
 
 

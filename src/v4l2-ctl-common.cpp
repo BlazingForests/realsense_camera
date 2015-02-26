@@ -21,6 +21,9 @@
 #include <map>
 #include <algorithm>
 
+#include "udev_unit.h"
+
+
 
 int doioctl_name(int fd, unsigned long int request, void *parm, const char *name);
 #define doioctl(n, r, p) doioctl_name(n, r, p, #r)
@@ -28,6 +31,7 @@ int doioctl_name(int fd, unsigned long int request, void *parm, const char *name
 
 typedef std::vector<std::string> dev_vec;
 typedef std::map<std::string, std::string> dev_map;
+typedef std::map<std::string, std::vector<std::string> > card_map;
 
 
 
@@ -66,7 +70,7 @@ bool sort_on_device_name(const std::string &s1, const std::string &s2)
 	return n1 < n2;
 }
 
-void list_devices(std::string &target_name, std::vector<std::string> &device_lists)
+void list_devices(std::string &target_name, std::vector<VIDEO_DEVICE> &device_lists)
 {
     device_lists.clear();
 
@@ -74,7 +78,7 @@ void list_devices(std::string &target_name, std::vector<std::string> &device_lis
 	struct dirent *ep;
 	dev_vec files;
 	dev_map links;
-    //dev_map cards;
+	card_map cards;
 	struct v4l2_capability vcap;
 
 	dp = opendir("/dev");
@@ -133,26 +137,35 @@ void list_devices(std::string &target_name, std::vector<std::string> &device_lis
 
         if(target_name == card_name)
         {
-            device_lists.push_back(*iter);
-
-            printf("find %s device named = %s\n", target_name.c_str(), (*iter).c_str());
+        	std::string bus_info((const char *)vcap.bus_info);
+			cards[bus_info].push_back(*iter);
         }
 
-//      std::string bus_info;
-//		bus_info = (const char *)vcap.bus_info;
-//		if (cards[bus_info].empty())
-//			cards[bus_info] += std::string((char *)vcap.card) + " (" + bus_info + "):\n";
-//		cards[bus_info] += "\t" + (*iter);
-//		if (!(links[*iter].empty()))
-//			cards[bus_info] += " <- " + links[*iter];
-//		cards[bus_info] += "\n";
 	}
 
 
-//	for (dev_map::iterator iter = cards.begin();
-//			iter != cards.end(); ++iter) {
-//		printf("%s\n", iter->second.c_str());
-//	}
+	for (card_map::iterator iter = cards.begin();
+			iter != cards.end(); ++iter) {
+
+		VIDEO_DEVICE device;
+		device.card_name = iter->first;
+
+		//get serial number
+		if(1)
+		{
+			device.serial_number = getDeviceSerialNumber((iter->second)[0].c_str());
+		}
+
+
+		for(int i=0; i<(iter->second).size(); ++i)
+		{
+			device.video_names.push_back((iter->second)[i]);
+		}
+
+		device_lists.push_back(device);
+	}
 }
+
+
 
 

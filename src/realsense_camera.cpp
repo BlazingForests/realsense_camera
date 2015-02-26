@@ -133,6 +133,8 @@ initDepthToRGBUVMap()
     std::string packagePath = ros::package::getPath("realsense_camera");
     std::string uvmapPath = packagePath + "/data/uvmap/";
 
+    printf("\n============ start read UVMap\n");
+
     for(int i=depth_enable_min; i <= depth_enable_max; ++i)
     {
         char uvmapFileName[64] = {0};
@@ -164,10 +166,12 @@ initDepthToRGBUVMap()
 
             depthToRGBUVMapALL[i] = d_to_rgb_uvmap;
 
-            printf("init Depth To RGB UVMap dist = %04d\n", i);
+            //printf("%04d, ", i);
+            printf(".");
         }
     }
 
+    printf("\n============ end read UVMap\n");
 }
 
 
@@ -479,11 +483,9 @@ int main(int argc, char* argv[])
     //private_node_handle_.param("video_depth_idx", video_depth_idx, std::string("2"));
 
 
-    initDepthToRGBUVMap();
-
     //find realsense video device
     std::string target_device_name = "Intel(R) RealSense(TM) 3D Camer";
-    std::vector<std::string> video_lists;
+    std::vector<VIDEO_DEVICE> video_lists;
     list_devices(target_device_name, video_lists);
 
     if(video_lists.empty())
@@ -493,20 +495,37 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    if(video_lists.size() < 2)
+    if(1)
     {
-        printf("Intel(R) RealSense(TM) 3D Camer video error!!\n");
-        for (std::vector<std::string>::iterator iter = video_lists.begin();
-                iter != video_lists.end(); ++iter) {
-            printf("    found %s\n", (*iter).c_str());
-        }
-        ros::shutdown();
-        return 0;
+    	printf("\n===========================================\n");
+    	printf("Intel(R) RealSense(TM) 3D Camer lists\n");
+
+    	for(int i=0; i<video_lists.size(); ++i)
+    	{
+    		printf("\nPCI: %s\n", video_lists[i].card_name.c_str());
+    		printf("Serial: %s\n", video_lists[i].serial_number.c_str());
+    		for(int j=0; j<video_lists[i].video_names.size(); ++j)
+    		{
+    			printf("\t%s\n", video_lists[i].video_names[j].c_str());
+    		}
+    	}
+    	printf("===========================================\n\n");
+    }
+
+    //return 0;
+
+    if(video_lists[0].video_names.size() < 2)
+	{
+		printf("Intel(R) RealSense(TM) 3D Camer video device count error!!!!!!!!!!!\n");
+	}
+    else
+    {
+    	printf("use camera %s\n", video_lists[0].card_name.c_str());
     }
 
     initVideoStream();
-    strncpy(rgb_stream.videoName, video_lists[0].c_str(), video_lists[0].length());
-    strncpy(depth_stream.videoName, video_lists[1].c_str(), video_lists[1].length());
+    strncpy(rgb_stream.videoName, video_lists[0].video_names[0].c_str(), video_lists[0].video_names[0].length());
+    strncpy(depth_stream.videoName, video_lists[0].video_names[1].c_str(), video_lists[0].video_names[1].length());
 
     printf("video rgb name is %s\n", rgb_stream.videoName);
     printf("video depth name is %s\n", depth_stream.videoName);
@@ -534,6 +553,7 @@ int main(int argc, char* argv[])
         printf("video depth w,h - %d, %d\n", depth_stream.width, depth_stream.height);
     }
 
+    initDepthToRGBUVMap();
 
     rgb_frame_buffer = new unsigned char[rgb_stream.width * rgb_stream.height * 3];
     //depth_value_buffer = new unsigned short[depth_stream.width * depth_stream.height];
