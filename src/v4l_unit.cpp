@@ -1,3 +1,5 @@
+#include "v4l_unit.h"
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,8 +15,6 @@
 #include <sys/time.h>
 #include <dirent.h>
 #include <math.h>
-
-#include "v4l2-ctl.h"
 
 #include <list>
 #include <vector>
