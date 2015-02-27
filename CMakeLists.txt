@@ -141,7 +141,7 @@ add_definitions(
 add_executable(realsense_camera_node 
   src/realsense_camera.cpp
   src/capturer_mmap.c
-  src/v4l2-ctl-common.cpp
+  src/v4l_unit.cpp
   src/udev_unit.cpp
 )
 
