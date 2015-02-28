@@ -125,7 +125,10 @@ void list_devices(std::string &target_name, std::vector<VIDEO_DEVICE> &device_li
 	std::sort(files.begin(), files.end(), sort_on_device_name);
 
 	for (dev_vec::iterator iter = files.begin();
-			iter != files.end(); ++iter) {
+			iter != files.end(); ++iter)
+	{
+		//printf("process %s\n", iter->c_str());
+
 		int fd = open(iter->c_str(), O_RDWR);
 
 		if (fd < 0)
