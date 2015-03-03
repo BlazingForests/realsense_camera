@@ -281,7 +281,7 @@ pubRealSenseDepthImageMsg(cv::Mat& depth_mat)
 	depth_img.width = depth_mat.cols;
 	depth_img.height = depth_mat.rows;
 
-	depth_img.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
+	depth_img.encoding = sensor_msgs::image_encodings::MONO8;
 	depth_img.is_bigendian = 0;
 
 	int step = sizeof(unsigned char) * depth_img.width;
@@ -304,7 +304,7 @@ pubRealSenseRGBImageMsg(cv::Mat& rgb_mat)
 	rgb_img.width = rgb_mat.cols;
 	rgb_img.height = rgb_mat.rows;
 
-	rgb_img.encoding = sensor_msgs::image_encodings::TYPE_8UC3;
+	rgb_img.encoding = sensor_msgs::image_encodings::BGR8;
 	rgb_img.is_bigendian = 0;
 
 	int step = sizeof(unsigned char) * 3 * rgb_img.width;
