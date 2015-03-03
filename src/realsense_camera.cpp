@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <sys/stat.h>
 
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -135,19 +136,27 @@ initDepthToRGBUVMap()
 	isHaveD2RGBUVMap = false;
 
     std::string packagePath = ros::package::getPath("realsense_camera");
-    std::string uvmapPath = packagePath + "/data/uvmap/";
+    std::string uvmapPath = packagePath + "/data/uvmap/" + useDeviceSerialNum;
+
+    struct stat st;
+	if (stat(uvmapPath.c_str(), &st) != 0)
+	{
+		/* Directory does not exist. EEXIST for race condition */
+		printf("Directory %s does not exist!!!!\n", uvmapPath.c_str());
+		return;
+	}
 
     printf("\n============ start read UVMap\n");
 
     for(int i=depth_enable_min; i <= depth_enable_max; ++i)
     {
         char uvmapFileName[64] = {0};
-        sprintf(uvmapFileName, "uvmap_%04d.bin", i);
+        sprintf(uvmapFileName, "/uvmap_%04d.bin", i);
         std::string uvmapFullName = uvmapPath + uvmapFileName;
 
         std::ifstream uvmapFile;
 
-        uvmapFile.open(uvmapFullName.c_str(), std::ios::binary | std::ios::ate);
+        uvmapFile.open(uvmapFullName.c_str(), std::ios::binary | std::ios::ate | std::ios::in);
 
         if(uvmapFile.is_open())
         {
@@ -235,7 +244,7 @@ pubRealSenseTF()
 	tf_br.sendTransform(tf::StampedTransform(tf, ros::Time::now(),
 												 "/realsense_frame", "/realsense_depth_frame"));
 
-	//base to depth
+	//depth to depth optical
 	q.setRPY(-1.571f, 0.0f, -1.571f);
 	tf.setRotation(q);
 	tf.setOrigin(tf::Vector3(0.0f, 0.0f, 0.0f));
@@ -403,14 +412,14 @@ processRGBD()
 {
 
 	processDepth();
-	if(isHaveD2RGBUVMap)
+	//if(isHaveD2RGBUVMap)
     {
 		processRGB();
     }
 
 	Mat depth_frame(depth_stream.height, depth_stream.width, CV_8UC1, depth_frame_buffer);
     Mat rgb_frame;
-    if(isHaveD2RGBUVMap)
+    //if(isHaveD2RGBUVMap)
     {
     	rgb_frame = Mat(rgb_stream.height, rgb_stream.width, CV_8UC3, rgb_frame_buffer);
     	//YUV 2 RGB
@@ -539,7 +548,7 @@ processRGBD()
 
 #if SHOW_RGBD_FRAME
     cv::imshow("depth frame view", depth_frame);
-    if(isHaveD2RGBUVMap)
+    //if(isHaveD2RGBUVMap)
     {
     	cv::imshow("RGB frame view", rgb_frame);
     }
@@ -605,7 +614,7 @@ int main(int argc, char* argv[])
 	}
     else
     {
-    	useDeviceSerialNum = video_lists[0].card_name;
+    	useDeviceSerialNum = video_lists[0].serial_number;
     	printf("use camera %s\n", useDeviceSerialNum.c_str());
     }
 
