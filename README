@@ -3,3 +3,34 @@ if you want RGB data for point cloud
 copy the uvmap files from smb://10.0.0.100/public/realsense/uvmap/ by realsense's serial number to data/uvmap/
 
 
+
+Use:
+
+launch realsense camera and rviz
+================================================
+roslaunch realsense_camera realsense_rviz.launch 
+
+
+
+launch realsense camera only
+=================================================
+roslaunch realsense_camera realsense_camera.launch
+
+
+
+
+
+publish topic
+=================================================
+
+sensor_msgs::PointCloud2
+/realsense/depth/points			point cloud without RGB
+/realsense/depth_registered/points	point cloud with RGB
+
+sensor_msgs::Image
+/realsense/image/rgb			image for RGB sensor
+/realsense/image/depth			image for depth sensor
+
+
+
+
