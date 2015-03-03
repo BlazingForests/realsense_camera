@@ -1,0 +1,5 @@
+if you want RGB data for point cloud
+
+copy the uvmap files from smb://10.0.0.100/public/realsense/uvmap/ by realsense's serial number to data/uvmap/
+
+
