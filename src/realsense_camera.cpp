@@ -28,28 +28,6 @@
 
 
 
-/*
-The unit of depth values in micrometer if PIXEL_FORMAT_DEPTH_RAW
-31.250000
-
-The depth-sensor horizontal and vertical field of view parameters, in degrees.
-x, y = 72.000000, 55.000000
-
-The depth-sensor, sensing distance parameters, in millimeters.
-min, max = 0.000000, 2047.000000
-
-The depth-sensor focal length in pixels. The parameters vary with the resolution setting.
-x, y = 463.888885, 463.888885
-
-The depth-sensor focal length in mm.
-1.670000
-
-The depth-sensor principal point in pixels. The parameters vary with the resolution setting.
-x, y = 320.000000, 240.000000
-  */
-
-
-
 #define SHOW_RGBD_FRAME 0
 
 
@@ -96,6 +74,13 @@ unsigned char *depth_frame_buffer = NULL;
 
 
 int sensor_depth_max = 1200;
+
+//int depth_min = 99999;
+//int depth_max = -1;
+
+std::string rgb_frame_id = "_rgb_optical_frame";
+std::string depth_frame_id = "_depth_optical_frame";
+
 float depth_unit = 31.25f;
 float depth_scale = 0.001f;
 
@@ -105,6 +90,17 @@ float depth_fyinv = 1.0f / 463.888885f;
 float depth_cx = 320.0f;
 float depth_cy = 240.0f;
 
+int depth_uv_enable_min = 0;
+int depth_uv_enable_max = 2047;
+
+std::string topic_depth_points_id = "/depth/points";
+std::string topic_depth_registered_points_id = "/depth_registered/points";
+
+std::string topic_image_rgb_raw_id = "/image/rgb_raw";
+std::string topic_image_depth_raw_id = "/image/depth_raw";
+
+
+
 ros::Publisher realsense_points_pub;
 ros::Publisher realsense_reg_points_pub;
 
@@ -112,12 +108,7 @@ ros::Publisher realsense_rgb_image_pub;
 ros::Publisher realsense_depth_image_pub;
 
 
-int depth_min = 99999;
-int depth_max = -1;
 
-
-int depth_enable_min = 0;
-int depth_enable_max = 2047;
 
 typedef struct
 {
@@ -148,7 +139,7 @@ initDepthToRGBUVMap()
 
     printf("\n============ start read UVMap\n");
 
-    for(int i=depth_enable_min; i <= depth_enable_max; ++i)
+    for(int i=depth_uv_enable_min; i <= depth_uv_enable_max; ++i)
     {
         char uvmapFileName[64] = {0};
         sprintf(uvmapFileName, "/uvmap_%04d.bin", i);
@@ -166,16 +157,9 @@ initDepthToRGBUVMap()
             uvmapFile.read(uvmapValue, len);
             uvmapFile.close();
 
-            //printf("uvmap file len = %d\n", len);
-
             DepthToRGBUVMap d_to_rgb_uvmap;
             d_to_rgb_uvmap.depthValue = i;
             d_to_rgb_uvmap.uvmap = (float*)uvmapValue;
-
-            //for(int j=0; j<(len/(sizeof(float)*2)); ++j)
-            //{
-            //    printf("%04d = %f, %f\n", j, d_to_rgb_uvmap.uvmap[2*j], d_to_rgb_uvmap.uvmap[2*j+1]);
-            //}
 
             depthToRGBUVMapALL[i] = d_to_rgb_uvmap;
 
@@ -184,7 +168,7 @@ initDepthToRGBUVMap()
         }
     }
 
-    if(depthToRGBUVMapALL.size() == (depth_enable_max - depth_enable_min + 1))
+    if(depthToRGBUVMapALL.size() == (depth_uv_enable_max - depth_uv_enable_min + 1))
     {
     	isHaveD2RGBUVMap = true;
     }
@@ -216,47 +200,47 @@ int getUVWithDXY(int depth, int xy, float &uvx, float &uvy)
 }
 
 
-void
-pubRealSenseTF()
-{
-	static tf::TransformBroadcaster tf_br;
-    tf::Transform tf;
-    tf::Quaternion q;
-
-    //base to rgb
-    q.setRPY(0.0f, 0.0f, 0.0f);
-    tf.setRotation(q);
-    tf.setOrigin(tf::Vector3(0.0f, -0.024f, 0.0f));
-    tf_br.sendTransform(tf::StampedTransform(tf, ros::Time::now(),
-                                                 "/realsense_frame", "/realsense_rgb_frame"));
-
-    //rgb to rgb optical
-    q.setRPY(-1.571f, 0.0f, -1.571f);
-    tf.setRotation(q);
-    tf.setOrigin(tf::Vector3(0.0f, 0.0f, 0.0f));
-    tf_br.sendTransform(tf::StampedTransform(tf, ros::Time::now(),
-                                                     "/realsense_rgb_frame", "/realsense_rgb_optical_frame"));
-
-    //base to depth
-	q.setRPY(0.0f, 0.0f, 0.0f);
-	tf.setRotation(q);
-	tf.setOrigin(tf::Vector3(0.0f, -0.048f, 0.0f));
-	tf_br.sendTransform(tf::StampedTransform(tf, ros::Time::now(),
-												 "/realsense_frame", "/realsense_depth_frame"));
-
-	//depth to depth optical
-	q.setRPY(-1.571f, 0.0f, -1.571f);
-	tf.setRotation(q);
-	tf.setOrigin(tf::Vector3(0.0f, 0.0f, 0.0f));
-    tf_br.sendTransform(tf::StampedTransform(tf, ros::Time::now(),
-                                             "/realsense_depth_frame", "/realsense_depth_optical_frame"));
-}
+//void
+//pubRealSenseTF()
+//{
+//	static tf::TransformBroadcaster tf_br;
+//    tf::Transform tf;
+//    tf::Quaternion q;
+//
+//    //base to rgb
+//    q.setRPY(0.0f, 0.0f, 0.0f);
+//    tf.setRotation(q);
+//    tf.setOrigin(tf::Vector3(0.0f, -0.024f, 0.0f));
+//    tf_br.sendTransform(tf::StampedTransform(tf, ros::Time::now(),
+//                                                 "/realsense_frame", "/realsense_rgb_frame"));
+//
+//    //rgb to rgb optical
+//    q.setRPY(-1.571f, 0.0f, -1.571f);
+//    tf.setRotation(q);
+//    tf.setOrigin(tf::Vector3(0.0f, 0.0f, 0.0f));
+//    tf_br.sendTransform(tf::StampedTransform(tf, ros::Time::now(),
+//                                                     "/realsense_rgb_frame", "/realsense_rgb_optical_frame"));
+//
+//    //base to depth
+//	q.setRPY(0.0f, 0.0f, 0.0f);
+//	tf.setRotation(q);
+//	tf.setOrigin(tf::Vector3(0.0f, -0.048f, 0.0f));
+//	tf_br.sendTransform(tf::StampedTransform(tf, ros::Time::now(),
+//												 "/realsense_frame", "/realsense_depth_frame"));
+//
+//	//depth to depth optical
+//	q.setRPY(-1.571f, 0.0f, -1.571f);
+//	tf.setRotation(q);
+//	tf.setOrigin(tf::Vector3(0.0f, 0.0f, 0.0f));
+//    tf_br.sendTransform(tf::StampedTransform(tf, ros::Time::now(),
+//                                             "/realsense_depth_frame", "/realsense_depth_optical_frame"));
+//}
 
 
 void
 pubRealSensePointsXYZCloudMsg(pcl::PointCloud<pcl::PointXYZ>::Ptr &xyz_input)
 {
-    xyz_input->header.frame_id = "/realsense_depth_optical_frame";
+    xyz_input->header.frame_id = depth_frame_id;
 
     pcl::PCLPointCloud2 pcl_xyz_pc2;
     pcl::toPCLPointCloud2 (*xyz_input, pcl_xyz_pc2);
@@ -270,7 +254,7 @@ pubRealSensePointsXYZCloudMsg(pcl::PointCloud<pcl::PointXYZ>::Ptr &xyz_input)
 void
 pubRealSensePointsXYZRGBCloudMsg(pcl::PointCloud<PointType>::Ptr &xyzrgb_input)
 {
-	xyzrgb_input->header.frame_id = "/realsense_depth_optical_frame";
+	xyzrgb_input->header.frame_id = depth_frame_id;
 
     pcl::PCLPointCloud2 pcl_xyzrgb_pc2;
     pcl::toPCLPointCloud2 (*xyzrgb_input, pcl_xyzrgb_pc2);
@@ -458,24 +442,24 @@ processRGBD()
         unsigned short depth_raw = *((unsigned short*)(depth_stream.frameBuffer.data) + i);
         int depth = depth_raw / depth_unit;
 
-        if(depth)
-        {
-            int new_min = std::min(depth_min, depth);
-            int new_max = std::max(depth_max, depth);
-
-            if(new_min != depth_min)
-            {
-                printf("new depth min = %d, %d\n", depth_raw, new_min);
-            }
-
-            if(new_max != depth_max)
-            {
-                printf("new depth max = %d, %d\n", depth_raw, new_max);
-            }
-
-            depth_min = new_min;
-            depth_max = new_max;
-        }
+//        if(depth)
+//        {
+//            int new_min = std::min(depth_min, depth);
+//            int new_max = std::max(depth_max, depth);
+//
+//            if(new_min != depth_min)
+//            {
+//                printf("new depth min = %d, %d\n", depth_raw, new_min);
+//            }
+//
+//            if(new_max != depth_max)
+//            {
+//                printf("new depth max = %d, %d\n", depth_raw, new_max);
+//            }
+//
+//            depth_min = new_min;
+//            depth_max = new_max;
+//        }
 
         depth_frame_buffer[i] = depth ? 255 * (sensor_depth_max - depth) / sensor_depth_max : 0;
 
@@ -511,31 +495,31 @@ processRGBD()
 					}
 					else
 					{
-						realsense_xyzrgb_cloud->points[i].x = nanf("");
-						realsense_xyzrgb_cloud->points[i].y = nanf("");
-						realsense_xyzrgb_cloud->points[i].z = nanf("");
+						realsense_xyzrgb_cloud->points[i].x = std::numeric_limits<float>::quiet_NaN();
+						realsense_xyzrgb_cloud->points[i].y = std::numeric_limits<float>::quiet_NaN();
+						realsense_xyzrgb_cloud->points[i].z = std::numeric_limits<float>::quiet_NaN();
 					}
 				}
 				else
 				{
-					realsense_xyzrgb_cloud->points[i].x = nanf("");
-					realsense_xyzrgb_cloud->points[i].y = nanf("");
-					realsense_xyzrgb_cloud->points[i].z = nanf("");
+					realsense_xyzrgb_cloud->points[i].x = std::numeric_limits<float>::quiet_NaN();
+					realsense_xyzrgb_cloud->points[i].y = std::numeric_limits<float>::quiet_NaN();
+					realsense_xyzrgb_cloud->points[i].z = std::numeric_limits<float>::quiet_NaN();
 				}
             }
 
         }
         else
         {
-        	realsense_xyz_cloud->points[i].x = nanf("");
-			realsense_xyz_cloud->points[i].y = nanf("");
-			realsense_xyz_cloud->points[i].z = nanf("");
+        	realsense_xyz_cloud->points[i].x = std::numeric_limits<float>::quiet_NaN();
+			realsense_xyz_cloud->points[i].y = std::numeric_limits<float>::quiet_NaN();
+			realsense_xyz_cloud->points[i].z = std::numeric_limits<float>::quiet_NaN();
 
         	if(isHaveD2RGBUVMap)
         	{
-				realsense_xyzrgb_cloud->points[i].x = nanf("");
-				realsense_xyzrgb_cloud->points[i].y = nanf("");
-				realsense_xyzrgb_cloud->points[i].z = nanf("");
+				realsense_xyzrgb_cloud->points[i].x = std::numeric_limits<float>::quiet_NaN();
+				realsense_xyzrgb_cloud->points[i].y = std::numeric_limits<float>::quiet_NaN();
+				realsense_xyzrgb_cloud->points[i].z = std::numeric_limits<float>::quiet_NaN();
         	}
         }
 
@@ -554,7 +538,6 @@ processRGBD()
     }
 #endif
 
-    pubRealSenseTF();
     pubRealSensePointsXYZCloudMsg(realsense_xyz_cloud);
     if(isHaveD2RGBUVMap)
     {
@@ -571,8 +554,71 @@ int main(int argc, char* argv[])
     ros::init(argc, argv, "realsense_camera_node");
     ros::NodeHandle n;
 
-    //ros::NodeHandle private_node_handle_("~");
-    //private_node_handle_.param("video_rgb_idx", video_rgb_idx, std::string("0"));
+    ros::NodeHandle private_node_handle_("~");
+    private_node_handle_.param("rgb_frame_id", rgb_frame_id, std::string("_rgb_optical_frame"));
+    private_node_handle_.param("depth_frame_id", depth_frame_id, std::string("_depth_optical_frame"));
+
+    double depth_unit_d, depth_scale_d;
+    private_node_handle_.param("depth_unit", depth_unit_d, 31.25);
+    private_node_handle_.param("depth_scale", depth_scale_d, 0.001);
+    depth_unit = depth_unit_d;
+    depth_scale = depth_scale_d;
+
+    double depth_fx, depth_fy;
+    private_node_handle_.param("depth_fx", depth_fx, 463.888885);
+    private_node_handle_.param("depth_fy", depth_fy, 463.888885);
+    depth_fxinv = 1.0f / depth_fx;
+    depth_fyinv = 1.0f / depth_fy;
+
+    double depth_cx_d, depth_cy_d;
+    private_node_handle_.param("depth_cx", depth_cx_d, 320.0);
+    private_node_handle_.param("depth_cy", depth_cy_d, 240.0);
+    depth_cx = depth_cx_d;
+    depth_cy = depth_cy_d;
+
+    private_node_handle_.param("depth_uv_enable_min", depth_uv_enable_min, 0);
+    private_node_handle_.param("depth_uv_enable_max", depth_uv_enable_max, 2047);
+
+    private_node_handle_.param("topic_depth_points_id", topic_depth_points_id, std::string("/depth/points"));
+    private_node_handle_.param("topic_depth_registered_points_id", topic_depth_registered_points_id, std::string("/depth_registered/points"));
+
+    private_node_handle_.param("topic_image_rgb_raw_id", topic_image_rgb_raw_id, std::string("/image/rgb_raw"));
+    private_node_handle_.param("topic_image_depth_raw_id", topic_image_depth_raw_id, std::string("/image/depth_raw"));
+
+
+    printf("\n\n===================\n"
+    		"rgb_frame_id = %s\n"
+    		"depth_frame_id = %s\n"
+    		"depth_unit = %f\n"
+    		"depth_scale = %f\n"
+    		"depth_fxinv = %f\n"
+    		"depth_fyinv = %f\n"
+    		"depth_cx = %f\n"
+    		"depth_cy = %f\n"
+    		"depth_uv_enable_min = %d\n"
+    		"depth_uv_enable_max = %d\n"
+    		"topic_depth_points_id = %s\n"
+    		"topic_depth_registered_points_id = %s\n"
+    		"topic_image_rgb_raw_id = %s\n"
+    		"topic_image_depth_raw_id = %s\n"
+    		"=======================\n\n",
+
+			rgb_frame_id.c_str(),
+			depth_frame_id.c_str(),
+			depth_unit,
+			depth_scale,
+			depth_fxinv,
+			depth_fyinv,
+			depth_cx,
+			depth_cy,
+			depth_uv_enable_min,
+			depth_uv_enable_max,
+			topic_depth_points_id.c_str(),
+			topic_depth_registered_points_id.c_str(),
+			topic_image_rgb_raw_id.c_str(),
+			topic_image_depth_raw_id.c_str()
+
+    		);
 
 
     //find realsense video device
@@ -651,16 +697,14 @@ int main(int argc, char* argv[])
     }
 
 
-
     rgb_frame_buffer = new unsigned char[rgb_stream.width * rgb_stream.height * 3];
     depth_frame_buffer = new unsigned char[depth_stream.width * depth_stream.height];
 
+    realsense_points_pub = n.advertise<sensor_msgs::PointCloud2> (topic_depth_points_id, 1);
+    realsense_reg_points_pub = n.advertise<sensor_msgs::PointCloud2>(topic_depth_registered_points_id, 1);
 
-    realsense_points_pub = n.advertise<sensor_msgs::PointCloud2> ("/realsense/depth/points", 1);
-    realsense_reg_points_pub = n.advertise<sensor_msgs::PointCloud2>("/realsense/depth_registered/points", 1);
-
-    realsense_rgb_image_pub = n.advertise<sensor_msgs::Image>("/realsense/image/rgb", 1);
-    realsense_depth_image_pub = n.advertise<sensor_msgs::Image>("/realsense/image/depth", 1);
+    realsense_rgb_image_pub = n.advertise<sensor_msgs::Image>(topic_image_rgb_raw_id, 1);
+    realsense_depth_image_pub = n.advertise<sensor_msgs::Image>(topic_image_depth_raw_id, 1);
 
 
     ros::Rate loop_rate(30);

@@ -73,7 +73,7 @@ Visualization Manager:
       Size (Pixels): 1
       Size (m): 0.01
       Style: Points
-      Topic: /realsense/depth/points
+      Topic: /camera/depth/points
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
@@ -102,7 +102,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.01
       Style: Points
-      Topic: /realsense/depth_registered/points
+      Topic: /camera/depth_registered/points
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
@@ -111,15 +111,15 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        realsense_depth_frame:
+        camera_depth_frame:
           Value: true
-        realsense_depth_optical_frame:
+        camera_depth_optical_frame:
           Value: true
-        realsense_frame:
+        camera_link:
           Value: true
-        realsense_rgb_frame:
+        camera_rgb_frame:
           Value: true
-        realsense_rgb_optical_frame:
+        camera_rgb_optical_frame:
           Value: true
       Marker Scale: 0.1
       Name: TF
@@ -127,18 +127,18 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        realsense_frame:
-          realsense_depth_frame:
-            realsense_depth_optical_frame:
+        camera_link:
+          camera_depth_frame:
+            camera_depth_optical_frame:
               {}
-          realsense_rgb_frame:
-            realsense_rgb_optical_frame:
+          camera_rgb_frame:
+            camera_rgb_optical_frame:
               {}
       Update Interval: 0
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /realsense/image/depth
+      Image Topic: /camera/image/depth_raw
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -149,7 +149,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /realsense/image/rgb
+      Image Topic: /camera/image/rgb_raw
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -161,7 +161,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: realsense_frame
+    Fixed Frame: camera_link
     Frame Rate: 30
   Name: root
   Tools:
@@ -217,5 +217,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1200
-  X: 356
-  Y: 76
+  X: 346
+  Y: 66
