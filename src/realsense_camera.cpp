@@ -324,7 +324,7 @@ void initVideoStream()
     strncpy(depth_stream.videoName, "/dev/video", 10);
     depth_stream.width = 640;
     depth_stream.height = 480;
-    depth_stream.pixelFormat = V4L2_PIX_FMT_RGB565;
+    depth_stream.pixelFormat = 0;//V4L2_PIX_FMT_RGB565;
     depth_stream.fd = -1;
 }
 
