@@ -697,6 +697,8 @@ int main(int argc, char* argv[])
     }
 
 
+    printf("RealSense Camera is running!\n");
+
     rgb_frame_buffer = new unsigned char[rgb_stream.width * rgb_stream.height * 3];
     depth_frame_buffer = new unsigned char[depth_stream.width * depth_stream.height];
 

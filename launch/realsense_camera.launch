@@ -35,7 +35,7 @@
     <arg name="depth_cy" default="240.0" />
     
     <arg name="depth_uv_enable_min" default="0" />
-    <arg name="depth_uv_enable_max" default="2047" />
+    <arg name="depth_uv_enable_max" default="800" />
     
     <arg name="topic_depth_points_id" default="$(arg camera)/depth/points" />
     <arg name="topic_depth_registered_points_id" default="$(arg camera)/depth_registered/points" />
