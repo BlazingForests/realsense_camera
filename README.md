@@ -64,6 +64,13 @@ you can custom topic in file realsense_camera.launch
 <arg name="topic_image_depth_raw_id" default="$(arg camera)/image/depth_raw" />
 ```
 
+## Q&A
+
+#### if have "select timeout" issue
+stop realsense_camera node`
+re-plug realsense device then retry
+
+
 ## TODO
 
 * add use TF between RGB & depth to register rgb data
