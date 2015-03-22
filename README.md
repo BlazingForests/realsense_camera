@@ -64,6 +64,12 @@ you can custom topic in file realsense_camera.launch
 <arg name="topic_image_depth_raw_id" default="$(arg camera)/image/depth_raw" />
 ```
 
+## TODO
+
+* add use TF between RGB & depth to register rgb data
+* add usb reset
+* add read properties from device
+* add RGB to depth camera calibration
 
 
 
