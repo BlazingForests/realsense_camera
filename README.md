@@ -3,12 +3,15 @@ use realsense camera in ROS
 
 
 ## Notes
+This package do not contains uvmap data(use to register RGB data)
 
-if you want RGB data for point cloud
+So it is only publish point cloud without RGB
 
-please visit [realsense_camera_tools](https://github.com/BlazingForests/realsense_camera_tools)
+If you want RGB data for point cloud
 
-copy the uvmap files by realsense's serial number to data/uvmap/
+Please visit [realsense_camera_tools](https://github.com/BlazingForests/realsense_camera_tools)
+
+You can copy the uvmap files by realsense's serial number to data/uvmap/
 
 ```
 realsense_camera
@@ -31,16 +34,18 @@ realsense_camera
 
 ## Usage
 
-### launch realsense camera and rviz
+* launch realsense camera and rviz
+```
 roslaunch realsense_camera realsense_rviz.launch 
+```
 
-
-### launch realsense camera only
+* launch realsense camera only
+```
 roslaunch realsense_camera realsense_camera.launch
+```
 
 
-
-## publish topic
+## Publish topics
 
 default
 
@@ -66,10 +71,11 @@ you can custom topic in file realsense_camera.launch
 
 ## Q&A
 
-#### if have "select timeout" issue
-stop realsense_camera node`
-re-plug realsense device then retry
-
+* If have "select timeout" issue
+```
+Stop realsense_camera node
+Re-plug realsense device then retry
+```
 
 ## TODO
 
