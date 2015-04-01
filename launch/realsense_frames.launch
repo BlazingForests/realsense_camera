@@ -12,13 +12,16 @@
     
     <node pkg="tf" type="static_transform_publisher" name="camera_angle2camera_tf" 
             args="0 0 0 0 -0.31415 0 camera_link_angle $(arg tf_prefix)/$(arg camera)_link 100" />
-    -->
+    
     
     <node pkg="tf" type="static_transform_publisher" name="realsense2camera_angle_tf" 
             args="0.028 0.027 -0.024 -0.698, -0.111, 0.111, 0.699  realsense_case_link $(arg tf_prefix)/$(arg camera)_link 100" />
-
+	-->
+	
+	
     <node pkg="tf" type="static_transform_publisher" name="$(arg camera)_base_link"
         args="0 -0.024 0 0 0 0 $(arg tf_prefix)/$(arg camera)_link $(arg tf_prefix)/$(arg camera)_rgb_frame 100" />
+        
     <node pkg="tf" type="static_transform_publisher" name="$(arg camera)_base_link1"
         args="0 -0.048 0 0 0 0 $(arg tf_prefix)/$(arg camera)_link $(arg tf_prefix)/$(arg camera)_depth_frame 100" />
     
