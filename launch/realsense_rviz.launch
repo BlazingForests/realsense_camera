@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<launch>
+
+    <include file="$(find realsense_camera)/launch/realsense_camera.launch" />
+    
+    <node name="realsense_rviz" pkg="rviz" type="rviz" args="-d $(find realsense_camera)/config/realsense.rviz" />
+
+</launch>

@@ -1,0 +1,74 @@
+<?xml version="1.0" ?>
+<launch>
+
+    <!--
+    The unit of depth values in micrometer if PIXEL_FORMAT_DEPTH_RAW
+    31.250000
+    
+    The depth-sensor horizontal and vertical field of view parameters, in degrees.
+    x, y = 72.000000, 55.000000
+    
+    The depth-sensor, sensing distance parameters, in millimeters.
+    min, max = 0.000000, 2047.000000
+    
+    The depth-sensor focal length in pixels. The parameters vary with the resolution setting.
+    x, y = 463.888885, 463.888885
+    
+    The depth-sensor focal length in mm.
+    1.670000
+    
+    The depth-sensor principal point in pixels. The parameters vary with the resolution setting.
+    x, y = 320.000000, 240.000000
+    -->
+    
+    <arg name="camera" default="camera" />
+    <arg name="rgb_frame_id" default="$(arg camera)_rgb_optical_frame" />
+    <arg name="depth_frame_id" default="$(arg camera)_depth_optical_frame" />
+
+    <arg name="depth_unit" default="31.25" />
+    <arg name="depth_scale" default="0.001" />
+    
+    <arg name="depth_fx" default="463.888885" />
+    <arg name="depth_fy" default="463.888885" />
+    
+    <arg name="depth_cx" default="320.0" />
+    <arg name="depth_cy" default="240.0" />
+    
+    <arg name="depth_uv_enable_min" default="0" />
+    <arg name="depth_uv_enable_max" default="800" />
+    
+    <arg name="topic_depth_points_id" default="$(arg camera)/depth/points" />
+    <arg name="topic_depth_registered_points_id" default="$(arg camera)/depth_registered/points" />
+    
+    <arg name="topic_image_rgb_raw_id" default="$(arg camera)/image/rgb_raw" />
+    <arg name="topic_image_depth_raw_id" default="$(arg camera)/image/depth_raw" />
+    
+
+    <node name="realsense_node" pkg="realsense_camera" type="realsense_camera_node" output="screen">
+        <param name="rgb_frame_id" value="$(arg rgb_frame_id)" />
+        <param name="depth_frame_id" value="$(arg depth_frame_id)" />
+    
+        <param name="depth_unit" value="$(arg depth_unit)" />
+        <param name="depth_scale" value="$(arg depth_scale)" />
+        
+        <param name="depth_fx" value="$(arg depth_fx)" />
+        <param name="depth_fy" value="$(arg depth_fx)" />
+        
+        <param name="depth_cx" value="$(arg depth_cx)" />
+        <param name="depth_cy" value="$(arg depth_cy)" />
+        
+        <param name="depth_uv_enable_min" value="$(arg depth_uv_enable_min)" />
+        <param name="depth_uv_enable_max" value="$(arg depth_uv_enable_max)" />
+        
+        <param name="topic_depth_points_id" value="$(arg topic_depth_points_id)" />
+        <param name="topic_depth_registered_points_id" value="$(arg topic_depth_registered_points_id)" />
+        
+        <param name="topic_image_rgb_raw_id" value="$(arg topic_image_rgb_raw_id)" />
+        <param name="topic_image_depth_raw_id" value="$(arg topic_image_depth_raw_id)" />
+    </node>
+    
+    <include file="$(find realsense_camera)/launch/realsense_frames.launch">
+        <arg name="camera" value="$(arg camera)" />
+    </include>
+
+</launch>
