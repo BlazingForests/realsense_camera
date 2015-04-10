@@ -136,6 +136,7 @@ void list_devices(std::string &target_name, std::vector<VIDEO_DEVICE> &device_li
 		doioctl(fd, VIDIOC_QUERYCAP, &vcap);
 		close(fd);
 
+<<<<<<< HEAD
 		if(1)
 		{
 			printf("\nVIDIOC_QUERYCAP - %s\n"
@@ -156,6 +157,8 @@ void list_devices(std::string &target_name, std::vector<VIDEO_DEVICE> &device_li
 					vcap.reserved[0], vcap.reserved[1], vcap.reserved[2] );
 		}
 
+=======
+>>>>>>> 2a2793f793fccbcbaf3d4f900db1464b5bf599ff
         std::string card_name = (const char *)vcap.card;
 
         if(target_name == card_name)
