@@ -2,6 +2,18 @@
 use realsense camera in ROS
 
 
+
+## New
+
+* [2015/04/10] Added infrared stream for realsense camera
+
+        If you want IR stream, please visit
+        http://solsticlipse.com/2015/03/31/intel-real-sense-3d-on-linux-macos.html
+        https://github.com/teknotus/depthview/tree/kernelpatchfmt
+
+
+
+
 ## Notes
 This package do not contains uvmap data(use to register RGB data)
 
