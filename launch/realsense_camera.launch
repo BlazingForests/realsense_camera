@@ -45,9 +45,6 @@
     <arg name="topic_image_infrared_raw_id" default="$(arg camera)/image/ir_raw" />
     
     
-    <arg name="depthWithIRStream" default="false" />
-    
-    
     <!-- debug depth unit -->
     <arg name="debug_depth_unit" default="false" />
     
@@ -75,7 +72,6 @@
         <param name="topic_image_rgb_raw_id" value="$(arg topic_image_rgb_raw_id)" />
         <param name="topic_image_depth_raw_id" value="$(arg topic_image_depth_raw_id)" />
         <param name="topic_image_infrared_raw_id" value="$(arg topic_image_infrared_raw_id)" />
-        <param name="depthWithIRStream" value="$(arg depthWithIRStream)" />
         
         <param name="debug_depth_unit" value="$(arg debug_depth_unit)" />
         

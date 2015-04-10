@@ -74,12 +74,13 @@ bool		debug_depth_unit = false;
 
 VideoStream     rgb_stream;
 VideoStream     depth_stream;
-bool			 depthWithIRStream = false;
 std::string		useDeviceSerialNum;
 
 unsigned char *rgb_frame_buffer = NULL;
 unsigned char *depth_frame_buffer = NULL;
+#ifdef V4L2_PIX_FMT_INZI
 unsigned char *ir_frame_buffer = NULL;
+#endif
 
 
 int sensor_depth_max = 1200;
@@ -116,7 +117,9 @@ ros::Publisher realsense_reg_points_pub;
 
 ros::Publisher realsense_rgb_image_pub;
 ros::Publisher realsense_depth_image_pub;
+#ifdef V4L2_PIX_FMT_INZI
 ros::Publisher realsense_infrared_image_pub;
+#endif
 
 
 
@@ -270,6 +273,7 @@ pubRealSenseDepthImageMsg(cv::Mat& depth_mat)
 }
 
 
+#ifdef V4L2_PIX_FMT_INZI
 void
 pubRealSenseInfraredImageMsg(cv::Mat& ir_mat)
 {
@@ -291,7 +295,7 @@ pubRealSenseInfraredImageMsg(cv::Mat& ir_mat)
 
 	realsense_infrared_image_pub.publish(ir_img);
 }
-
+#endif
 
 void
 pubRealSenseRGBImageMsg(cv::Mat& rgb_mat)
@@ -330,14 +334,12 @@ void initVideoStream()
     strncpy(depth_stream.videoName, "/dev/video", 10);
     depth_stream.width = 640;
     depth_stream.height = 480;
-    if(depthWithIRStream)
-    {
-    	depth_stream.pixelFormat = V4L2_PIX_FMT_INZI;
-    }
-    else
-    {
-    	depth_stream.pixelFormat = 0;
-    }
+#ifdef V4L2_PIX_FMT_INZI
+    depth_stream.pixelFormat = V4L2_PIX_FMT_INZI;
+#else
+    depth_stream.pixelFormat = 0;
+#endif
+
     depth_stream.fd = -1;
 }
 
@@ -413,11 +415,11 @@ processRGBD()
 
 	Mat depth_frame(depth_stream.height, depth_stream.width, CV_8UC1, depth_frame_buffer);
 
+#ifdef V4L2_PIX_FMT_INZI
 	Mat ir_frame;
-	if(depthWithIRStream)
-	{
-		ir_frame = Mat(depth_stream.height, depth_stream.width, CV_8UC1, ir_frame_buffer);
-	}
+	ir_frame = Mat(depth_stream.height, depth_stream.width, CV_8UC1, ir_frame_buffer);
+#endif
+
 
 	Mat rgb_frame(rgb_stream.height, rgb_stream.width, CV_8UC3, rgb_frame_buffer);
 	//YUV 2 RGB
@@ -453,8 +455,7 @@ processRGBD()
     for(int i=0; i<depth_stream.width * depth_stream.height; ++i)
     {
     	float depth = 0;
-    	if(depthWithIRStream)
-    	{
+#ifdef V4L2_PIX_FMT_INZI
 			unsigned short* depth_ptr = (unsigned short*)((unsigned char*)(depth_stream.frameBuffer.data) + i*3);
 			unsigned char* ir_ptr = (unsigned char*)(depth_stream.frameBuffer.data) + i*3+2;
 
@@ -463,12 +464,10 @@ processRGBD()
 
 			unsigned short depth_raw = *depth_ptr;
 			depth = (float)depth_raw / depth_unit;
-    	}
-    	else
-    	{
+#else
     		unsigned short depth_raw = *((unsigned short*)(depth_stream.frameBuffer.data) + i);
 			depth = (float)depth_raw / depth_unit;
-    	}
+#endif
 
 //        if(depth)
 //        {
@@ -583,10 +582,9 @@ processRGBD()
 
 #if SHOW_RGBD_FRAME
     cv::imshow("depth frame view", depth_frame);
-    if(depthWithIRStream)
-    {
-    	cv::imshow("ir frame view", ir_frame);
-    }
+#ifdef V4L2_PIX_FMT_INZI
+    cv::imshow("ir frame view", ir_frame);
+#endif
     cv::imshow("RGB frame view", rgb_frame);
 #endif
 
@@ -596,10 +594,9 @@ processRGBD()
     	pubRealSensePointsXYZRGBCloudMsg(realsense_xyzrgb_cloud);
     }
 
-    if(depthWithIRStream)
-    {
-    	pubRealSenseInfraredImageMsg(ir_frame);
-    }
+#ifdef V4L2_PIX_FMT_INZI
+    pubRealSenseInfraredImageMsg(ir_frame);
+#endif
     pubRealSenseDepthImageMsg(depth_frame);
     pubRealSenseRGBImageMsg(rgb_frame);
 
@@ -657,8 +654,6 @@ int main(int argc, char* argv[])
     private_node_handle_.param("topic_image_depth_raw_id", topic_image_depth_raw_id, std::string("/image/depth_raw"));
     private_node_handle_.param("topic_image_infrared_raw_id", topic_image_infrared_raw_id, std::string("/image/ir_raw"));
 
-    private_node_handle_.param("depthWithIRStream", depthWithIRStream, false);
-
     private_node_handle_.param("debug_depth_unit", debug_depth_unit, false);
 
 
@@ -678,7 +673,6 @@ int main(int argc, char* argv[])
     		"topic_image_rgb_raw_id = %s\n"
     		"topic_image_depth_raw_id = %s\n"
     		"topic_image_infrared_raw_id = %s\n"
-    		"depthWithIRStream = %d\n"
     		"debug_depth_unit = %d\n"
     		"=======================\n\n",
 
@@ -697,17 +691,14 @@ int main(int argc, char* argv[])
 			topic_image_rgb_raw_id.c_str(),
 			topic_image_depth_raw_id.c_str(),
 			topic_image_infrared_raw_id.c_str(),
-			depthWithIRStream,
 			debug_depth_unit
 
     		);
 
 
 #ifdef V4L2_PIX_FMT_INZI
-    depthWithIRStream = true;
     printf("\ndepthWithIRStream - YEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEES\n");
 #else
-    depthWithIRStream = false;
     printf("\ndepthWithIRStream - NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n");
     printf("if you want IR stream, please visit\n"
     		"http://solsticlipse.com/2015/03/31/intel-real-sense-3d-on-linux-macos.html\n"
@@ -794,20 +785,18 @@ int main(int argc, char* argv[])
 
     rgb_frame_buffer = new unsigned char[rgb_stream.width * rgb_stream.height * 3];
     depth_frame_buffer = new unsigned char[depth_stream.width * depth_stream.height];
-    if(depthWithIRStream)
-    {
-    	ir_frame_buffer = new unsigned char[depth_stream.width * depth_stream.height];
-    }
+#ifdef V4L2_PIX_FMT_INZI
+    ir_frame_buffer = new unsigned char[depth_stream.width * depth_stream.height];
+#endif
 
     realsense_points_pub = n.advertise<sensor_msgs::PointCloud2> (topic_depth_points_id, 1);
     realsense_reg_points_pub = n.advertise<sensor_msgs::PointCloud2>(topic_depth_registered_points_id, 1);
 
     realsense_rgb_image_pub = n.advertise<sensor_msgs::Image>(topic_image_rgb_raw_id, 1);
     realsense_depth_image_pub = n.advertise<sensor_msgs::Image>(topic_image_depth_raw_id, 1);
-    if(depthWithIRStream)
-    {
-    	realsense_infrared_image_pub = n.advertise<sensor_msgs::Image>(topic_image_infrared_raw_id, 1);
-    }
+#ifdef V4L2_PIX_FMT_INZI
+    realsense_infrared_image_pub = n.advertise<sensor_msgs::Image>(topic_image_infrared_raw_id, 1);
+#endif
 
     ros::Subscriber config_sub = n.subscribe("/realsense_camera_config", 1, realsenseConfigCallback);
 
@@ -832,10 +821,9 @@ int main(int argc, char* argv[])
 
     delete[] rgb_frame_buffer;
     delete[] depth_frame_buffer;
-    if(depthWithIRStream)
-    {
-    	delete[] ir_frame_buffer;
-    }
+#ifdef V4L2_PIX_FMT_INZI
+    delete[] ir_frame_buffer;
+#endif
 
     return 0;
 }
