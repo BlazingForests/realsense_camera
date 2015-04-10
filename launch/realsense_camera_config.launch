@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<launch>
+
+    <!--
+    The unit of depth values in micrometer if PIXEL_FORMAT_DEPTH_RAW
+    31.250000
+    
+    The depth-sensor horizontal and vertical field of view parameters, in degrees.
+    x, y = 72.000000, 55.000000
+    
+    The depth-sensor, sensing distance parameters, in millimeters.
+    min, max = 0.000000, 2047.000000
+    
+    The depth-sensor focal length in pixels. The parameters vary with the resolution setting.
+    x, y = 463.888885, 463.888885
+    
+    The depth-sensor focal length in mm.
+    1.670000
+    
+    The depth-sensor principal point in pixels. The parameters vary with the resolution setting.
+    x, y = 320.000000, 240.000000
+    -->
+    
+    <arg name="depth_unit" default="33.05" />
+    
+    <arg name="depth_fx" default="463.888885" />
+    <arg name="depth_fy" default="463.888885" />
+    
+    <arg name="depth_cx" default="320.0" />
+    <arg name="depth_cy" default="240.0" />
+    
+    <node name="realsense_config_node" pkg="realsense_camera" type="realsense_camera_config_node" output="screen">
+    
+        <param name="depth_unit" value="$(arg depth_unit)" />
+        
+        <param name="depth_fx" value="$(arg depth_fx)" />
+        <param name="depth_fy" value="$(arg depth_fx)" />
+        
+        <param name="depth_cx" value="$(arg depth_cx)" />
+        <param name="depth_cy" value="$(arg depth_cy)" />
+        
+    </node>
+
+</launch>

@@ -86,6 +86,17 @@ find_package(PCL 1.7 REQUIRED COMPONENTS
 #   std_msgs
 # )
 
+add_message_files(
+  FILES
+  realsenseConfig.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  realsense_camera
+)
+
+
 ###################################
 ## catkin specific configuration ##
 ###################################
@@ -145,9 +156,18 @@ add_executable(realsense_camera_node
   src/udev_unit.cpp
 )
 
+add_executable(realsense_camera_config_node 
+  src/realsense_camera_config.cpp
+)
+
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(realsense_camera_node realsense_camera_generate_messages_cpp)
+
+
+add_dependencies(realsense_camera_node realsense_camera_generate_messages_cpp)
+add_dependencies(realsense_camera_config_node realsense_camera_generate_messages_cpp)
+
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(realsense_camera_node
@@ -160,6 +180,11 @@ target_link_libraries(realsense_camera_node
   ${OpenCV_LIBRARIES}
   ${PCL_LIBRARIES}
   -ludev
+)
+
+
+target_link_libraries(realsense_camera_config_node
+  ${catkin_LIBRARIES}
 )
 
 

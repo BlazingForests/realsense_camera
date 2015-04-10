@@ -25,7 +25,7 @@
     <arg name="rgb_frame_id" default="$(arg camera)_rgb_optical_frame" />
     <arg name="depth_frame_id" default="$(arg camera)_depth_optical_frame" />
 
-    <arg name="depth_unit" default="31.25" />
+    <arg name="depth_unit" default="33.1" />
     <arg name="depth_scale" default="0.001" />
     
     <arg name="depth_fx" default="463.888885" />
@@ -42,6 +42,15 @@
     
     <arg name="topic_image_rgb_raw_id" default="$(arg camera)/image/rgb_raw" />
     <arg name="topic_image_depth_raw_id" default="$(arg camera)/image/depth_raw" />
+    <arg name="topic_image_infrared_raw_id" default="$(arg camera)/image/ir_raw" />
+    
+    
+    <arg name="depthWithIRStream" default="false" />
+    
+    
+    <!-- debug depth unit -->
+    <arg name="debug_depth_unit" default="false" />
+    
     
 
     <node name="realsense_node" pkg="realsense_camera" type="realsense_camera_node" output="screen">
@@ -65,6 +74,11 @@
         
         <param name="topic_image_rgb_raw_id" value="$(arg topic_image_rgb_raw_id)" />
         <param name="topic_image_depth_raw_id" value="$(arg topic_image_depth_raw_id)" />
+        <param name="topic_image_infrared_raw_id" value="$(arg topic_image_infrared_raw_id)" />
+        <param name="depthWithIRStream" value="$(arg depthWithIRStream)" />
+        
+        <param name="debug_depth_unit" value="$(arg debug_depth_unit)" />
+        
     </node>
     
     <include file="$(find realsense_camera)/launch/realsense_frames.launch">

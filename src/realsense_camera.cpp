@@ -26,9 +26,13 @@
 
 #include "v4l_unit.h"
 
+#include "realsense_camera/realsenseConfig.h"
+
+
 
 
 #define SHOW_RGBD_FRAME 0
+
 
 
 using namespace cv;
@@ -63,14 +67,19 @@ double timeuse, all_timeuse;
 
 
 
+//debug info
+bool		debug_depth_unit = false;
+
 
 
 VideoStream     rgb_stream;
 VideoStream     depth_stream;
+bool			 depthWithIRStream = false;
 std::string		useDeviceSerialNum;
 
 unsigned char *rgb_frame_buffer = NULL;
 unsigned char *depth_frame_buffer = NULL;
+unsigned char *ir_frame_buffer = NULL;
 
 
 int sensor_depth_max = 1200;
@@ -98,6 +107,7 @@ std::string topic_depth_registered_points_id = "/depth_registered/points";
 
 std::string topic_image_rgb_raw_id = "/image/rgb_raw";
 std::string topic_image_depth_raw_id = "/image/depth_raw";
+std::string topic_image_infrared_raw_id = "/image/ir_raw";
 
 
 
@@ -106,6 +116,7 @@ ros::Publisher realsense_reg_points_pub;
 
 ros::Publisher realsense_rgb_image_pub;
 ros::Publisher realsense_depth_image_pub;
+ros::Publisher realsense_infrared_image_pub;
 
 
 
@@ -118,6 +129,15 @@ typedef struct
 
 std::map<int, DepthToRGBUVMap> depthToRGBUVMapALL;
 bool isHaveD2RGBUVMap = false;
+
+
+
+
+
+float	center_z = 0.0f;
+int		center_z_count = 0;
+float	center_offset_pixel = 5.f;
+
 
 
 
@@ -200,43 +220,6 @@ int getUVWithDXY(int depth, int xy, float &uvx, float &uvy)
 }
 
 
-//void
-//pubRealSenseTF()
-//{
-//	static tf::TransformBroadcaster tf_br;
-//    tf::Transform tf;
-//    tf::Quaternion q;
-//
-//    //base to rgb
-//    q.setRPY(0.0f, 0.0f, 0.0f);
-//    tf.setRotation(q);
-//    tf.setOrigin(tf::Vector3(0.0f, -0.024f, 0.0f));
-//    tf_br.sendTransform(tf::StampedTransform(tf, ros::Time::now(),
-//                                                 "/realsense_frame", "/realsense_rgb_frame"));
-//
-//    //rgb to rgb optical
-//    q.setRPY(-1.571f, 0.0f, -1.571f);
-//    tf.setRotation(q);
-//    tf.setOrigin(tf::Vector3(0.0f, 0.0f, 0.0f));
-//    tf_br.sendTransform(tf::StampedTransform(tf, ros::Time::now(),
-//                                                     "/realsense_rgb_frame", "/realsense_rgb_optical_frame"));
-//
-//    //base to depth
-//	q.setRPY(0.0f, 0.0f, 0.0f);
-//	tf.setRotation(q);
-//	tf.setOrigin(tf::Vector3(0.0f, -0.048f, 0.0f));
-//	tf_br.sendTransform(tf::StampedTransform(tf, ros::Time::now(),
-//												 "/realsense_frame", "/realsense_depth_frame"));
-//
-//	//depth to depth optical
-//	q.setRPY(-1.571f, 0.0f, -1.571f);
-//	tf.setRotation(q);
-//	tf.setOrigin(tf::Vector3(0.0f, 0.0f, 0.0f));
-//    tf_br.sendTransform(tf::StampedTransform(tf, ros::Time::now(),
-//                                             "/realsense_depth_frame", "/realsense_depth_optical_frame"));
-//}
-
-
 void
 pubRealSensePointsXYZCloudMsg(pcl::PointCloud<pcl::PointXYZ>::Ptr &xyz_input)
 {
@@ -288,6 +271,29 @@ pubRealSenseDepthImageMsg(cv::Mat& depth_mat)
 
 
 void
+pubRealSenseInfraredImageMsg(cv::Mat& ir_mat)
+{
+	sensor_msgs::Image ir_img;
+
+	ir_img.header.stamp = ros::Time::now();
+
+	ir_img.width = ir_mat.cols;
+	ir_img.height = ir_mat.rows;
+
+	ir_img.encoding = sensor_msgs::image_encodings::MONO8;
+	ir_img.is_bigendian = 0;
+
+	int step = sizeof(unsigned char) * ir_img.width;
+	int size = step * ir_img.height;
+	ir_img.step = step;
+	ir_img.data.resize(size);
+	memcpy(&ir_img.data[0], ir_mat.data, size);
+
+	realsense_infrared_image_pub.publish(ir_img);
+}
+
+
+void
 pubRealSenseRGBImageMsg(cv::Mat& rgb_mat)
 {
 	sensor_msgs::Image rgb_img;
@@ -324,7 +330,14 @@ void initVideoStream()
     strncpy(depth_stream.videoName, "/dev/video", 10);
     depth_stream.width = 640;
     depth_stream.height = 480;
-    depth_stream.pixelFormat = 0;//V4L2_PIX_FMT_RGB565;
+    if(depthWithIRStream)
+    {
+    	depth_stream.pixelFormat = V4L2_PIX_FMT_INZI;
+    }
+    else
+    {
+    	depth_stream.pixelFormat = 0;
+    }
     depth_stream.fd = -1;
 }
 
@@ -396,26 +409,26 @@ processRGBD()
 {
 
 	processDepth();
-	//if(isHaveD2RGBUVMap)
-    {
-		processRGB();
-    }
+	processRGB();
 
 	Mat depth_frame(depth_stream.height, depth_stream.width, CV_8UC1, depth_frame_buffer);
-    Mat rgb_frame;
-    //if(isHaveD2RGBUVMap)
-    {
-    	rgb_frame = Mat(rgb_stream.height, rgb_stream.width, CV_8UC3, rgb_frame_buffer);
-    	//YUV 2 RGB
-		int y_temp, y2_temp, u_temp, v_temp;
-		unsigned char *pptr = (unsigned char *)rgb_stream.frameBuffer.data;
-		for(int i=0, newi=0; i<rgb_stream.frameBuffer.length; i=i+4, newi=newi+6)
-		{
-			y_temp=(int)pptr[i]; u_temp=(int)pptr[i+1]; y2_temp=(int)pptr[i+2]; v_temp=(int)pptr[i+3];
-			yuv2rgb(y_temp, u_temp, v_temp, &rgb_frame_buffer[newi], &rgb_frame_buffer[newi+1], &rgb_frame_buffer[newi+2]);
-			yuv2rgb(y2_temp, u_temp, v_temp, &rgb_frame_buffer[newi+3], &rgb_frame_buffer[newi+4], &rgb_frame_buffer[newi+5]);
-		}
-    }
+
+	Mat ir_frame;
+	if(depthWithIRStream)
+	{
+		ir_frame = Mat(depth_stream.height, depth_stream.width, CV_8UC1, ir_frame_buffer);
+	}
+
+	Mat rgb_frame(rgb_stream.height, rgb_stream.width, CV_8UC3, rgb_frame_buffer);
+	//YUV 2 RGB
+	int y_temp, y2_temp, u_temp, v_temp;
+	unsigned char *pptr = (unsigned char *)rgb_stream.frameBuffer.data;
+	for(int i=0, newi=0; i<rgb_stream.frameBuffer.length; i=i+4, newi=newi+6)
+	{
+		y_temp=(int)pptr[i]; u_temp=(int)pptr[i+1]; y2_temp=(int)pptr[i+2]; v_temp=(int)pptr[i+3];
+		yuv2rgb(y_temp, u_temp, v_temp, &rgb_frame_buffer[newi], &rgb_frame_buffer[newi+1], &rgb_frame_buffer[newi+2]);
+		yuv2rgb(y2_temp, u_temp, v_temp, &rgb_frame_buffer[newi+3], &rgb_frame_buffer[newi+4], &rgb_frame_buffer[newi+5]);
+	}
 
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr realsense_xyz_cloud (new pcl::PointCloud<pcl::PointXYZ>());
@@ -439,8 +452,23 @@ processRGBD()
     //depth value
     for(int i=0; i<depth_stream.width * depth_stream.height; ++i)
     {
-        unsigned short depth_raw = *((unsigned short*)(depth_stream.frameBuffer.data) + i);
-        int depth = depth_raw / depth_unit;
+    	float depth = 0;
+    	if(depthWithIRStream)
+    	{
+			unsigned short* depth_ptr = (unsigned short*)((unsigned char*)(depth_stream.frameBuffer.data) + i*3);
+			unsigned char* ir_ptr = (unsigned char*)(depth_stream.frameBuffer.data) + i*3+2;
+
+			unsigned char ir_raw = *ir_ptr;
+			ir_frame_buffer[i] = ir_raw;
+
+			unsigned short depth_raw = *depth_ptr;
+			depth = (float)depth_raw / depth_unit;
+    	}
+    	else
+    	{
+    		unsigned short depth_raw = *((unsigned short*)(depth_stream.frameBuffer.data) + i);
+			depth = (float)depth_raw / depth_unit;
+    	}
 
 //        if(depth)
 //        {
@@ -466,12 +494,16 @@ processRGBD()
         float uvx = -1.0f;
         float uvy = -1.0f;
 
-        if(depth)
+        if(depth>0.000001f)
         {
+        	float pixel_x = (i % depth_stream.width) - depth_cx;
+        	float pixel_y = (i / depth_stream.width) - depth_cy;
             float zz = depth * depth_scale;
-            realsense_xyz_cloud->points[i].x = ((i % depth_stream.width) - depth_cx) * zz * depth_fxinv;
-            realsense_xyz_cloud->points[i].y = ((i / depth_stream.width) - depth_cy) * zz * depth_fyinv;
+            realsense_xyz_cloud->points[i].x = pixel_x * zz * depth_fxinv;
+            realsense_xyz_cloud->points[i].y = pixel_y * zz * depth_fyinv;
             realsense_xyz_cloud->points[i].z = zz;
+
+
 
             if(isHaveD2RGBUVMap)
             {
@@ -490,7 +522,21 @@ processRGBD()
 						unsigned char g = rgb[1];
 						unsigned char b = rgb[0];
 
-						realsense_xyzrgb_cloud->points[i].rgba = (0 << 24) | (r << 16) | (g << 8) | b;
+
+						if(debug_depth_unit &&
+							pixel_x > -center_offset_pixel &&
+							pixel_x < center_offset_pixel &&
+							pixel_y > -center_offset_pixel &&
+							pixel_y < center_offset_pixel )
+						{
+							center_z += zz;
+							center_z_count++;
+							realsense_xyzrgb_cloud->points[i].rgba = (0 << 24) | (0 << 16) | (0 << 8) | 255;
+						}
+						else
+						{
+							realsense_xyzrgb_cloud->points[i].rgba = (0 << 24) | (r << 16) | (g << 8) | b;
+						}
 
 					}
 					else
@@ -525,17 +571,23 @@ processRGBD()
 
     }
 
-
+    if(debug_depth_unit && center_z_count)
+    {
+    	center_z /= center_z_count;
+    	printf("average center z value = %f    depth_unit = %f\n", center_z, depth_unit);
+    	center_z_count = 0;
+    }
 
 
     USE_TIMES_END_SHOW ( start, end, "process result time" );
 
 #if SHOW_RGBD_FRAME
     cv::imshow("depth frame view", depth_frame);
-    //if(isHaveD2RGBUVMap)
+    if(depthWithIRStream)
     {
-    	cv::imshow("RGB frame view", rgb_frame);
+    	cv::imshow("ir frame view", ir_frame);
     }
+    cv::imshow("RGB frame view", rgb_frame);
 #endif
 
     pubRealSensePointsXYZCloudMsg(realsense_xyz_cloud);
@@ -544,10 +596,29 @@ processRGBD()
     	pubRealSensePointsXYZRGBCloudMsg(realsense_xyzrgb_cloud);
     }
 
+    if(depthWithIRStream)
+    {
+    	pubRealSenseInfraredImageMsg(ir_frame);
+    }
     pubRealSenseDepthImageMsg(depth_frame);
     pubRealSenseRGBImageMsg(rgb_frame);
 
+
 }
+
+
+
+void
+realsenseConfigCallback(const realsense_camera::realsenseConfig::ConstPtr &config)
+{
+	if(debug_depth_unit)
+	{
+		depth_unit = config->depth_raw_unit;
+		printf("depth_unit = %f\n", depth_unit);
+	}
+}
+
+
 
 int main(int argc, char* argv[])
 {
@@ -584,6 +655,11 @@ int main(int argc, char* argv[])
 
     private_node_handle_.param("topic_image_rgb_raw_id", topic_image_rgb_raw_id, std::string("/image/rgb_raw"));
     private_node_handle_.param("topic_image_depth_raw_id", topic_image_depth_raw_id, std::string("/image/depth_raw"));
+    private_node_handle_.param("topic_image_infrared_raw_id", topic_image_infrared_raw_id, std::string("/image/ir_raw"));
+
+    private_node_handle_.param("depthWithIRStream", depthWithIRStream, false);
+
+    private_node_handle_.param("debug_depth_unit", debug_depth_unit, false);
 
 
     printf("\n\n===================\n"
@@ -601,6 +677,9 @@ int main(int argc, char* argv[])
     		"topic_depth_registered_points_id = %s\n"
     		"topic_image_rgb_raw_id = %s\n"
     		"topic_image_depth_raw_id = %s\n"
+    		"topic_image_infrared_raw_id = %s\n"
+    		"depthWithIRStream = %d\n"
+    		"debug_depth_unit = %d\n"
     		"=======================\n\n",
 
 			rgb_frame_id.c_str(),
@@ -616,10 +695,24 @@ int main(int argc, char* argv[])
 			topic_depth_points_id.c_str(),
 			topic_depth_registered_points_id.c_str(),
 			topic_image_rgb_raw_id.c_str(),
-			topic_image_depth_raw_id.c_str()
+			topic_image_depth_raw_id.c_str(),
+			topic_image_infrared_raw_id.c_str(),
+			depthWithIRStream,
+			debug_depth_unit
 
     		);
 
+
+#ifdef V4L2_PIX_FMT_INZI
+    depthWithIRStream = true;
+    printf("\ndepthWithIRStream - YEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEES\n");
+#else
+    depthWithIRStream = false;
+    printf("\ndepthWithIRStream - NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n");
+    printf("if you want IR stream, please visit\n"
+    		"http://solsticlipse.com/2015/03/31/intel-real-sense-3d-on-linux-macos.html\n"
+    		"https://github.com/teknotus/depthview/tree/kernelpatchfmt\n");
+#endif
 
     //find realsense video device
     std::string target_device_name = "Intel(R) RealSense(TM) 3D Camer";
@@ -701,12 +794,22 @@ int main(int argc, char* argv[])
 
     rgb_frame_buffer = new unsigned char[rgb_stream.width * rgb_stream.height * 3];
     depth_frame_buffer = new unsigned char[depth_stream.width * depth_stream.height];
+    if(depthWithIRStream)
+    {
+    	ir_frame_buffer = new unsigned char[depth_stream.width * depth_stream.height];
+    }
 
     realsense_points_pub = n.advertise<sensor_msgs::PointCloud2> (topic_depth_points_id, 1);
     realsense_reg_points_pub = n.advertise<sensor_msgs::PointCloud2>(topic_depth_registered_points_id, 1);
 
     realsense_rgb_image_pub = n.advertise<sensor_msgs::Image>(topic_image_rgb_raw_id, 1);
     realsense_depth_image_pub = n.advertise<sensor_msgs::Image>(topic_image_depth_raw_id, 1);
+    if(depthWithIRStream)
+    {
+    	realsense_infrared_image_pub = n.advertise<sensor_msgs::Image>(topic_image_infrared_raw_id, 1);
+    }
+
+    ros::Subscriber config_sub = n.subscribe("/realsense_camera_config", 1, realsenseConfigCallback);
 
 
     ros::Rate loop_rate(30);
@@ -719,6 +822,8 @@ int main(int argc, char* argv[])
         cv::waitKey(10);
 #endif
 
+        ros::spinOnce();
+
         loop_rate.sleep();
     }
 
@@ -727,6 +832,10 @@ int main(int argc, char* argv[])
 
     delete[] rgb_frame_buffer;
     delete[] depth_frame_buffer;
+    if(depthWithIRStream)
+    {
+    	delete[] ir_frame_buffer;
+    }
 
     return 0;
 }
