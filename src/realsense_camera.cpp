@@ -316,6 +316,21 @@ pubRealSenseRGBImageMsg(cv::Mat& rgb_mat)
 	memcpy(&rgb_img.data[0], rgb_mat.data, size);
 
 	realsense_rgb_image_pub.publish(rgb_img);
+
+
+	//save rgb img
+//	static int count = 0;
+//	count++;
+//	if(count > 150)
+//	{
+//	    struct timeval save_time;
+//        gettimeofday( &save_time, NULL );
+//        char save_name[256];
+//        sprintf(save_name, "/home/ddz/temp/realsense_rgb_%d.png", (int)save_time.tv_sec);
+//        printf("\nsave realsense rgb img: %s\n", save_name);
+//	    cv::imwrite(save_name, rgb_mat);
+//	    count = 0;
+//	}
 }
 
 
@@ -539,6 +554,7 @@ processRGBD()
 						realsense_xyzrgb_cloud->points[i].x = std::numeric_limits<float>::quiet_NaN();
 						realsense_xyzrgb_cloud->points[i].y = std::numeric_limits<float>::quiet_NaN();
 						realsense_xyzrgb_cloud->points[i].z = std::numeric_limits<float>::quiet_NaN();
+						realsense_xyzrgb_cloud->points[i].rgba = 0;
 					}
 				}
 				else
@@ -546,6 +562,7 @@ processRGBD()
 					realsense_xyzrgb_cloud->points[i].x = std::numeric_limits<float>::quiet_NaN();
 					realsense_xyzrgb_cloud->points[i].y = std::numeric_limits<float>::quiet_NaN();
 					realsense_xyzrgb_cloud->points[i].z = std::numeric_limits<float>::quiet_NaN();
+					realsense_xyzrgb_cloud->points[i].rgba = 0;
 				}
             }
 
@@ -561,6 +578,7 @@ processRGBD()
 				realsense_xyzrgb_cloud->points[i].x = std::numeric_limits<float>::quiet_NaN();
 				realsense_xyzrgb_cloud->points[i].y = std::numeric_limits<float>::quiet_NaN();
 				realsense_xyzrgb_cloud->points[i].z = std::numeric_limits<float>::quiet_NaN();
+				realsense_xyzrgb_cloud->points[i].rgba = 0;
         	}
         }
 
