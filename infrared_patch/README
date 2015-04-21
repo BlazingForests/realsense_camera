@@ -1,0 +1,91 @@
+
+Ubuntu 14.04
+============================
+
+
+
+
+First, Please visit https://github.com/teknotus/depthview/tree/kernelpatchfmt
+============================
+
+
+
+
+Download kernel source
+============================
+
+sudo apt-get build-dep linux
+
+mkdir realsense_patch
+
+cd realsense_patch/
+
+apt-get source linux-image-$(uname -r)
+
+
+
+
+Apply patch
+=============================
+
+cd linux-*
+
+git apply ../0001-Add-video-formats-for-Intel-real-sense-F200-camera.patch
+
+
+If failed, Manually merge them
+
+
+
+Copy header file
+==============================
+
+sudo cp include/uapi/linux/videodev2.h /usr/include/linux/videodev2.h
+sudo cp include/uapi/linux/videodev2.h /usr/src/linux-headers-$(uname -r)/include/linux/videodev2.h
+
+
+Compile
+==============================
+
+cd drivers/media/usb/uvc/ && sudo make -C /usr/src/linux-headers-`uname -r` M=`pwd` modules
+
+
+Install into module extra directory
+==============================
+
+cd ../../../..
+cd drivers/media/usb/uvc/ && sudo make -C /usr/src/linux-headers-`uname -r` M=`pwd` modules_install
+
+
+
+Test module
+=============================
+
+sudo rmmod uvcvideo
+sudo insmod /lib/modules/`uname -r`/extra/uvcvideo.ko
+
+
+Install module
+============================
+
+sudo cp /lib/modules/`uname -r`/extra/uvcvideo.ko /lib/modules/`uname -r`/kernel/drivers/media/usb/uvc/uvcvideo.ko
+
+
+
+Done
+===========================
+
+Restart Computer
+
+!!! Rebuild !!!  realsense_camera package   
+
+
+roslaunch realsense_camera realsense_rviz.launch
+
+If terminal show "depthWithIRStream - YEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEES"
+
+Everything is OK
+
+
+
+
