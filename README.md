@@ -69,6 +69,7 @@ sensor_msgs::PointCloud2
 sensor_msgs::Image
 /camera/image/rgb_raw               raw image for RGB sensor
 /camera/image/depth_raw             raw image for depth sensor
+/camera/image/ir_raw                raw image for infrared sensor
 ```
 
 you can custom topic in file realsense_camera.launch
@@ -79,6 +80,7 @@ you can custom topic in file realsense_camera.launch
     
 <arg name="topic_image_rgb_raw_id" default="$(arg camera)/image/rgb_raw" />
 <arg name="topic_image_depth_raw_id" default="$(arg camera)/image/depth_raw" />
+<arg name="topic_image_infrared_raw_id" default="$(arg camera)/image/ir_raw" />
 ```
 
 ## Q&A

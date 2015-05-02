@@ -13,7 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 
 # OpenCV
-find_package(OpenCV REQUIRED)
+find_package(OpenCV)
 IF (OPENCV_FOUND)
   MESSAGE("-- Found OpenCV version ${OPENCV_VERSION}: ${OPENCV_INCLUDE_DIRS}")
 ENDIF (OPENCV_FOUND)
