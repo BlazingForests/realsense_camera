@@ -136,25 +136,25 @@ void list_devices(std::string &target_name, std::vector<VIDEO_DEVICE> &device_li
 		doioctl(fd, VIDIOC_QUERYCAP, &vcap);
 		close(fd);
 
-		if(1)
-		{
-			printf("\nVIDIOC_QUERYCAP - %s\n"
-					"	driver = %s\n"
-					"	card = %s\n"
-					"	bus_info = %s\n"
-					"	version = %d\n"
-					"	capabilities = %d\n"
-					"	device_caps = %d\n"
-					"	reserved[3] = [%d, %d, %d]\n\n",
-					iter->c_str(),
-					vcap.driver,
-					vcap.card,
-					vcap.bus_info,
-					vcap.version,
-					vcap.capabilities,
-					vcap.device_caps,
-					vcap.reserved[0], vcap.reserved[1], vcap.reserved[2] );
-		}
+//		if(1)
+//		{
+//			printf("\nVIDIOC_QUERYCAP - %s\n"
+//					"	driver = %s\n"
+//					"	card = %s\n"
+//					"	bus_info = %s\n"
+//					"	version = %d\n"
+//					"	capabilities = %d\n"
+//					"	device_caps = %d\n"
+//					"	reserved[3] = [%d, %d, %d]\n\n",
+//					iter->c_str(),
+//					vcap.driver,
+//					vcap.card,
+//					vcap.bus_info,
+//					vcap.version,
+//					vcap.capabilities,
+//					vcap.device_caps,
+//					vcap.reserved[0], vcap.reserved[1], vcap.reserved[2] );
+//		}
 
         std::string card_name = (const char *)vcap.card;
 

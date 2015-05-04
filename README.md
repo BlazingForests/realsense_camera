@@ -43,6 +43,9 @@ realsense_camera
 
 ## Dependencies
 
+```
+sudo apt-get install libudev-dev
+```
 
 ## Usage
 
