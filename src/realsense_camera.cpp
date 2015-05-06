@@ -228,6 +228,7 @@ pubRealSensePointsXYZCloudMsg(pcl::PointCloud<pcl::PointXYZ>::Ptr &xyz_input)
     pcl::toPCLPointCloud2 (*xyz_input, pcl_xyz_pc2);
 
     sensor_msgs::PointCloud2 realsense_xyz_cloud2;
+    realsense_xyz_cloud2.header.stamp = ros::Time::now();
     pcl_conversions::moveFromPCL(pcl_xyz_pc2, realsense_xyz_cloud2);
     realsense_points_pub.publish (realsense_xyz_cloud2);
 }
@@ -242,6 +243,7 @@ pubRealSensePointsXYZRGBCloudMsg(pcl::PointCloud<PointType>::Ptr &xyzrgb_input)
     pcl::toPCLPointCloud2 (*xyzrgb_input, pcl_xyzrgb_pc2);
 
     sensor_msgs::PointCloud2 realsense_xyzrgb_cloud2;
+    realsense_xyzrgb_cloud2.header.stamp = ros::Time::now();
     pcl_conversions::moveFromPCL(pcl_xyzrgb_pc2, realsense_xyzrgb_cloud2);
     realsense_reg_points_pub.publish (realsense_xyzrgb_cloud2);
 }
