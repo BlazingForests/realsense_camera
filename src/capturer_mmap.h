@@ -18,14 +18,12 @@
 
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
 
-#define BUFFER_COUNT 1
-#define USE_BUFFER_IDX 0
+#define BUFFER_COUNT 2
 
 //one video frame in memory
 typedef struct video_frame_buffer {
     size_t      length;
-    void*       mapbuf;
-    void*       fillbuf;
+    void*       mmapbuf;
 }FrameBuffer, * PFrameBuffer;
 
 
@@ -37,6 +35,8 @@ typedef struct video_stream
     unsigned int    pixelFormat;
     int             fd;
     FrameBuffer     frameBuffer[BUFFER_COUNT];
+    void*           fillbuf;
+    int             buflen;
 }VideoStream, * PVideoStream;
 
 

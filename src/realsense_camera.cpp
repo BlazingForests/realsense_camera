@@ -317,12 +317,12 @@ pubRealSenseRGBImageMsg(cv::Mat& rgb_mat)
 	//save rgb img
 //	static int count = 0;
 //	count++;
-//	if(count > 150)
+//	if(count > 0)
 //	{
 //	    struct timeval save_time;
 //        gettimeofday( &save_time, NULL );
 //        char save_name[256];
-//        sprintf(save_name, "/home/ddz/temp/realsense_rgb_%d.png", (int)save_time.tv_sec);
+//        sprintf(save_name, "~/temp/realsense_rgb_%d.jpg", (int)save_time.tv_sec);
 //        printf("\nsave realsense rgb img: %s\n", save_name);
 //	    cv::imwrite(save_name, rgb_mat);
 //	    count = 0;
@@ -445,8 +445,8 @@ processRGBD()
 	Mat rgb_frame(rgb_stream.height, rgb_stream.width, CV_8UC3, rgb_frame_buffer);
 	//YUV 2 RGB
 	int y_temp, y2_temp, u_temp, v_temp;
-	unsigned char *pptr = (unsigned char *)rgb_stream.frameBuffer[USE_BUFFER_IDX].fillbuf;
-	for(int i=0, newi=0; i<rgb_stream.frameBuffer[USE_BUFFER_IDX].length; i=i+4, newi=newi+6)
+	unsigned char *pptr = (unsigned char *)rgb_stream.fillbuf;
+	for(int i=0, newi=0; i<rgb_stream.buflen; i=i+4, newi=newi+6)
 	{
 		y_temp=(int)pptr[i]; u_temp=(int)pptr[i+1]; y2_temp=(int)pptr[i+2]; v_temp=(int)pptr[i+3];
 		yuv2rgb(y_temp, u_temp, v_temp, &rgb_frame_buffer[newi], &rgb_frame_buffer[newi+1], &rgb_frame_buffer[newi+2]);
@@ -477,8 +477,8 @@ processRGBD()
     {
     	float depth = 0;
 #ifdef V4L2_PIX_FMT_INZI
-			unsigned short* depth_ptr = (unsigned short*)((unsigned char*)(depth_stream.frameBuffer[USE_BUFFER_IDX].fillbuf) + i*3);
-			unsigned char* ir_ptr = (unsigned char*)(depth_stream.frameBuffer[USE_BUFFER_IDX].fillbuf) + i*3+2;
+			unsigned short* depth_ptr = (unsigned short*)((unsigned char*)(depth_stream.fillbuf) + i*3);
+			unsigned char* ir_ptr = (unsigned char*)(depth_stream.fillbuf) + i*3+2;
 
 			unsigned char ir_raw = *ir_ptr;
 			ir_frame_buffer[i] = ir_raw;
@@ -486,7 +486,7 @@ processRGBD()
 			unsigned short depth_raw = *depth_ptr;
 			depth = (float)depth_raw / depth_unit;
 #else
-    		unsigned short depth_raw = *((unsigned short*)(depth_stream.frameBuffer[USE_BUFFER_IDX].fillbuf) + i);
+    		unsigned short depth_raw = *((unsigned short*)(depth_stream.fillbuf) + i);
 			depth = (float)depth_raw / depth_unit;
 #endif
 

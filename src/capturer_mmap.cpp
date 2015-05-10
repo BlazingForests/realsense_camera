@@ -13,8 +13,6 @@ int xioctl (int fd, int request, void *arg)
 	int r;
 
 	r = ioctl (fd, request, arg);
-	//do
-	//while (-1 == r && EINTR == errno);
 
 	return r;
 }
@@ -47,8 +45,7 @@ int open_device (int * fd, char * dev_name)
 
 //configure and initialize the hardware device
 int init_device(int *fd, char *dev_name,
-                int *width, int *height, unsigned int *pixel_format,
-                FrameBuffer *framebuffer)
+                int *width, int *height, unsigned int *pixel_format )
 {
     struct v4l2_format fmt;
     char pixel_str[5] = {0};
@@ -133,7 +130,7 @@ int init_device(int *fd, char *dev_name,
 
 
 //alloc buffers and configure the shared memory area and start capturing
-int init_mmap (int * fd, char * dev_name, FrameBuffer *framebuffer)
+int init_mmap (int * fd, char * dev_name, FrameBuffer *framebuffer, void **fillbuf, int *buflen)
 {
 
     struct v4l2_requestbuffers req;
@@ -173,22 +170,24 @@ int init_mmap (int * fd, char * dev_name, FrameBuffer *framebuffer)
 
     for(unsigned int i=0; i<BUFFER_COUNT; ++i)
     {
-        framebuffer[i].mapbuf = mmap(  NULL,
+        framebuffer[i].mmapbuf = mmap( NULL,
                                        buf[i].length,
                                        PROT_READ | PROT_WRITE /* required */,
                                        MAP_SHARED /* recommended */,
                                        *fd,
                                        buf[i].m.offset);
 
-        if (MAP_FAILED == framebuffer[i].mapbuf)
+        if (MAP_FAILED == framebuffer[i].mmapbuf)
         {
             errno_exit ("mmap");
             return RESULT_FAILURE;
         }
 
         framebuffer[i].length = buf[i].length;
-        framebuffer[i].fillbuf = malloc(buf[i].length);
     }
+
+    *fillbuf = malloc(buf[0].length);
+    *buflen = buf[0].length;
 
     for(unsigned int i=0; i<BUFFER_COUNT; ++i)
     {
@@ -219,31 +218,43 @@ int start_capturing (int *fd)
 
 
 //read one frame from memory and throws the data to standard output
-int read_frame  (int * fd, FrameBuffer *buffer)
+int read_frame  (int * fd, FrameBuffer *buffer, void **fillbuf)
 {
-    for(unsigned int i=0; i<1/*BUFFER_COUNT*/; ++i)
+    struct v4l2_buffer buf;//needed for memory mapping
+    memset(&buf, 0, sizeof(v4l2_buffer));
+
+    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buf.memory = V4L2_MEMORY_MMAP;
+
+    if (-1 == xioctl (*fd, VIDIOC_DQBUF, &buf))
     {
-        struct v4l2_buffer buf;//needed for memory mapping
-        memset(&buf, 0, sizeof(v4l2_buffer));
-
-        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        buf.memory = V4L2_MEMORY_MMAP;
-        buf.index = i;
-
-        if (-1 == xioctl (*fd, VIDIOC_DQBUF, &buf))
+        if(errno == EAGAIN)
         {
-            printf("%d ", i);
-            errno_exit ("VIDIOC_DQBUF");
-            return RESULT_FAILURE;
+            errno_exit ("VIDIOC_DQBUF EAGAIN");
+        }
+        else if(errno == EINVAL)
+        {
+            errno_exit ("VIDIOC_DQBUF EINVAL");
+        }
+        else if(errno == EIO)
+        {
+            errno_exit ("VIDIOC_DQBUF EIO");
+        }
+        else
+        {
+            errno_exit ("VIDIOC_DQBUF NONE");
         }
 
-        memcpy(buffer[i].fillbuf, buffer[i].mapbuf, buffer[i].length);
+        return RESULT_FAILURE;
+    }
 
-        if (-1 == xioctl (*fd, VIDIOC_QBUF, &buf))
-        {
-            errno_exit ("VIDIOC_QBUF");
-            return RESULT_FAILURE;
-        }
+    //printf("VIDIOC_DQBUF = %d\n", buf.index);
+    memcpy(*fillbuf, buffer[buf.index].mmapbuf, buffer[buf.index].length);
+
+    if (-1 == xioctl (*fd, VIDIOC_QBUF, &buf))
+    {
+        errno_exit ("VIDIOC_QBUF");
+        return RESULT_FAILURE;
     }
 
 
@@ -251,7 +262,7 @@ int read_frame  (int * fd, FrameBuffer *buffer)
 }
 
 //just the main loop of this program 
-int mainloop(int * fd, FrameBuffer *buffer)
+int mainloop(int * fd, FrameBuffer *buffer, void **fillbuf)
 {
     int read_ok = 0;
 
@@ -288,7 +299,7 @@ int mainloop(int * fd, FrameBuffer *buffer)
 		}
 
 		//read one frame from the device and put on the buffer
-        if(read_frame (fd, buffer))
+        if(read_frame (fd, buffer, fillbuf))
         {
             continue;
         }
@@ -316,19 +327,19 @@ int stop_capturing (int * fd)
 
 
 //free the shared memory area
-int uninit_device (int *fd, FrameBuffer *buffer)
+int uninit_device (int *fd, FrameBuffer *buffer, void **fillbuf)
 {
     for(unsigned int i=0; i<BUFFER_COUNT; ++i)
     {
-        if (-1 == munmap (buffer[i].mapbuf, buffer[i].length))
+        if (-1 == munmap (buffer[i].mmapbuf, buffer[i].length))
             errno_exit ("munmap");
 
-        free(buffer[i].fillbuf);
-
-        buffer[i].fillbuf = NULL;
-        buffer[i].mapbuf = NULL;
+        buffer[i].mmapbuf = NULL;
         buffer[i].length = 0;
     }
+
+    free(*fillbuf);
+    *fillbuf = NULL;
 
     struct v4l2_requestbuffers req;
     memset(&req, 0, sizeof(v4l2_requestbuffers));
@@ -374,13 +385,16 @@ int capturer_mmap_init (PVideoStream p_video_stream)
                    p_video_stream->videoName,
                    &(p_video_stream->width),
                    &(p_video_stream->height),
-                   &(p_video_stream->pixelFormat),
-                   p_video_stream->frameBuffer))
+                   &(p_video_stream->pixelFormat) ))
     {
         return 1;
     }
 
-    if(init_mmap (&(p_video_stream->fd), p_video_stream->videoName, p_video_stream->frameBuffer))
+    if(init_mmap (  &(p_video_stream->fd),
+                    p_video_stream->videoName,
+                    p_video_stream->frameBuffer,
+                    &(p_video_stream->fillbuf),
+                    &p_video_stream->buflen ))
     {
         return 1;
     }
@@ -397,7 +411,8 @@ int capturer_mmap_init (PVideoStream p_video_stream)
 
 int capturer_mmap_get_frame(PVideoStream p_video_stream)
 {
-    return mainloop (&(p_video_stream->fd), p_video_stream->frameBuffer);
+    //printf("get frame = %s\n", p_video_stream->videoName);
+    return mainloop (&(p_video_stream->fd), p_video_stream->frameBuffer, &(p_video_stream->fillbuf));
 }
 
 void capturer_mmap_exit(PVideoStream p_video_stream)
@@ -406,7 +421,7 @@ void capturer_mmap_exit(PVideoStream p_video_stream)
 
     stop_capturing (&(p_video_stream->fd));
 
-    uninit_device (&(p_video_stream->fd), p_video_stream->frameBuffer);
+    uninit_device (&(p_video_stream->fd), p_video_stream->frameBuffer, &(p_video_stream->fillbuf));
 
     close_device (&(p_video_stream->fd));
 
