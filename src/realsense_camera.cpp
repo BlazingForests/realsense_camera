@@ -79,10 +79,7 @@ unsigned char *ir_frame_buffer = NULL;
 #endif
 
 
-int sensor_depth_max = 1200;
-
-//int depth_min = 99999;
-//int depth_max = -1;
+const int sensor_depth_max = 1200;
 
 std::string rgb_frame_id = "_rgb_optical_frame";
 std::string depth_frame_id = "_depth_optical_frame";
@@ -355,20 +352,24 @@ void initVideoStream()
     depth_stream.fd = -1;
 }
 
-void processRGB()
+int processRGB()
 {
+    int stream_state = 0;
     struct timeval rgb_start, rgb_end;
     USE_TIMES_START( rgb_start );
-    capturer_mmap_get_frame(&rgb_stream);
+    stream_state = capturer_mmap_get_frame(&rgb_stream);
     USE_TIMES_END_SHOW ( rgb_start, rgb_end, "capturer_mmap_get_frame RGB time" );
+    return stream_state;
 }
 
-void processDepth()
+int processDepth()
 {
+    int stream_state = 0;
     struct timeval depth_start, depth_end;
     USE_TIMES_START( depth_start );
-    capturer_mmap_get_frame(&depth_stream);
+    stream_state = capturer_mmap_get_frame(&depth_stream);
     USE_TIMES_END_SHOW ( depth_start, depth_end, "capturer_mmap_get_frame depth time" );
+    return stream_state;
 }
 
 
@@ -421,9 +422,17 @@ void yuv2rgb(int y, int u, int v, unsigned char *r, unsigned char *g, unsigned c
 void
 processRGBD()
 {
+    int stream_depth_state = 0;
+    int stream_rgb_state = 0;
 
-    processDepth();
-	processRGB();
+    stream_depth_state = processDepth();
+    stream_rgb_state = processRGB();
+
+    if(stream_depth_state || stream_rgb_state)
+    {
+        printf("\nstream state error  depth = %d, rgb = %d\n", stream_depth_state, stream_rgb_state);
+        return;
+    }
 
 	Mat depth_frame(depth_stream.height, depth_stream.width, CV_8UC1, depth_frame_buffer);
 
@@ -436,8 +445,8 @@ processRGBD()
 	Mat rgb_frame(rgb_stream.height, rgb_stream.width, CV_8UC3, rgb_frame_buffer);
 	//YUV 2 RGB
 	int y_temp, y2_temp, u_temp, v_temp;
-	unsigned char *pptr = (unsigned char *)rgb_stream.frameBuffer.data;
-	for(int i=0, newi=0; i<rgb_stream.frameBuffer.length; i=i+4, newi=newi+6)
+	unsigned char *pptr = (unsigned char *)rgb_stream.frameBuffer[USE_BUFFER_IDX].fillbuf;
+	for(int i=0, newi=0; i<rgb_stream.frameBuffer[USE_BUFFER_IDX].length; i=i+4, newi=newi+6)
 	{
 		y_temp=(int)pptr[i]; u_temp=(int)pptr[i+1]; y2_temp=(int)pptr[i+2]; v_temp=(int)pptr[i+3];
 		yuv2rgb(y_temp, u_temp, v_temp, &rgb_frame_buffer[newi], &rgb_frame_buffer[newi+1], &rgb_frame_buffer[newi+2]);
@@ -468,8 +477,8 @@ processRGBD()
     {
     	float depth = 0;
 #ifdef V4L2_PIX_FMT_INZI
-			unsigned short* depth_ptr = (unsigned short*)((unsigned char*)(depth_stream.frameBuffer.data) + i*3);
-			unsigned char* ir_ptr = (unsigned char*)(depth_stream.frameBuffer.data) + i*3+2;
+			unsigned short* depth_ptr = (unsigned short*)((unsigned char*)(depth_stream.frameBuffer[USE_BUFFER_IDX].fillbuf) + i*3);
+			unsigned char* ir_ptr = (unsigned char*)(depth_stream.frameBuffer[USE_BUFFER_IDX].fillbuf) + i*3+2;
 
 			unsigned char ir_raw = *ir_ptr;
 			ir_frame_buffer[i] = ir_raw;
@@ -477,28 +486,9 @@ processRGBD()
 			unsigned short depth_raw = *depth_ptr;
 			depth = (float)depth_raw / depth_unit;
 #else
-    		unsigned short depth_raw = *((unsigned short*)(depth_stream.frameBuffer.data) + i);
+    		unsigned short depth_raw = *((unsigned short*)(depth_stream.frameBuffer[USE_BUFFER_IDX].fillbuf) + i);
 			depth = (float)depth_raw / depth_unit;
 #endif
-
-//        if(depth)
-//        {
-//            int new_min = std::min(depth_min, depth);
-//            int new_max = std::max(depth_max, depth);
-//
-//            if(new_min != depth_min)
-//            {
-//                printf("new depth min = %d, %d\n", depth_raw, new_min);
-//            }
-//
-//            if(new_max != depth_max)
-//            {
-//                printf("new depth max = %d, %d\n", depth_raw, new_max);
-//            }
-//
-//            depth_min = new_min;
-//            depth_max = new_max;
-//        }
 
         depth_frame_buffer[i] = depth ? 255 * (sensor_depth_max - depth) / sensor_depth_max : 0;
 
@@ -845,6 +835,8 @@ int main(int argc, char* argv[])
 #ifdef V4L2_PIX_FMT_INZI
     delete[] ir_frame_buffer;
 #endif
+
+    printf("RealSense Camera is shutdown!\n");
 
     return 0;
 }
