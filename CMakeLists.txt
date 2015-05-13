@@ -92,6 +92,11 @@ add_message_files(
   realsenseConfig.msg
 )
 
+add_service_files(
+  FILES
+  get_rgb_uv.srv
+)
+
 generate_messages(
   DEPENDENCIES
   realsense_camera

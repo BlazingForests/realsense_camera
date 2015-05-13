@@ -1,0 +1,13 @@
+int32 x_min_depth
+int32 x_min_xy
+int32 y_min_depth
+int32 y_min_xy
+int32 x_max_depth
+int32 x_max_xy
+int32 y_max_depth
+int32 y_max_xy
+---
+int32 x_min_uv
+int32 y_min_uv
+int32 x_max_uv
+int32 y_max_uv

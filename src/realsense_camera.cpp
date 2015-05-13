@@ -24,6 +24,7 @@
 #include "v4l_unit.h"
 
 #include "realsense_camera/realsenseConfig.h"
+#include "realsense_camera/get_rgb_uv.h"
 
 
 
@@ -105,6 +106,10 @@ std::string topic_image_infrared_raw_id = "/image/ir_raw";
 
 
 
+//msgs head
+unsigned int head_sequence_id = 0;
+ros::Time head_time_stamp;
+
 ros::Publisher realsense_points_pub;
 ros::Publisher realsense_reg_points_pub;
 
@@ -114,6 +119,8 @@ ros::Publisher realsense_depth_image_pub;
 ros::Publisher realsense_infrared_image_pub;
 #endif
 
+
+ros::ServiceServer getRGBUVService;
 
 
 
@@ -219,14 +226,16 @@ int getUVWithDXY(int depth, int xy, float &uvx, float &uvy)
 void
 pubRealSensePointsXYZCloudMsg(pcl::PointCloud<pcl::PointXYZ>::Ptr &xyz_input)
 {
-    xyz_input->header.frame_id = depth_frame_id;
-
     pcl::PCLPointCloud2 pcl_xyz_pc2;
     pcl::toPCLPointCloud2 (*xyz_input, pcl_xyz_pc2);
 
     sensor_msgs::PointCloud2 realsense_xyz_cloud2;
-    realsense_xyz_cloud2.header.stamp = ros::Time::now();
     pcl_conversions::moveFromPCL(pcl_xyz_pc2, realsense_xyz_cloud2);
+
+    realsense_xyz_cloud2.header.seq = head_sequence_id;
+    realsense_xyz_cloud2.header.stamp = head_time_stamp;
+    realsense_xyz_cloud2.header.frame_id = depth_frame_id;
+
     realsense_points_pub.publish (realsense_xyz_cloud2);
 }
 
@@ -234,14 +243,16 @@ pubRealSensePointsXYZCloudMsg(pcl::PointCloud<pcl::PointXYZ>::Ptr &xyz_input)
 void
 pubRealSensePointsXYZRGBCloudMsg(pcl::PointCloud<PointType>::Ptr &xyzrgb_input)
 {
-	xyzrgb_input->header.frame_id = depth_frame_id;
-
     pcl::PCLPointCloud2 pcl_xyzrgb_pc2;
     pcl::toPCLPointCloud2 (*xyzrgb_input, pcl_xyzrgb_pc2);
 
     sensor_msgs::PointCloud2 realsense_xyzrgb_cloud2;
-    realsense_xyzrgb_cloud2.header.stamp = ros::Time::now();
     pcl_conversions::moveFromPCL(pcl_xyzrgb_pc2, realsense_xyzrgb_cloud2);
+
+    realsense_xyzrgb_cloud2.header.seq = head_sequence_id;
+    realsense_xyzrgb_cloud2.header.stamp = head_time_stamp;
+    realsense_xyzrgb_cloud2.header.frame_id = depth_frame_id;
+
     realsense_reg_points_pub.publish (realsense_xyzrgb_cloud2);
 }
 
@@ -250,7 +261,8 @@ pubRealSenseDepthImageMsg(cv::Mat& depth_mat)
 {
 	sensor_msgs::Image depth_img;
 
-	depth_img.header.stamp = ros::Time::now();
+	depth_img.header.seq = head_sequence_id;
+	depth_img.header.stamp = head_time_stamp;
 
 	depth_img.width = depth_mat.cols;
 	depth_img.height = depth_mat.rows;
@@ -274,7 +286,8 @@ pubRealSenseInfraredImageMsg(cv::Mat& ir_mat)
 {
 	sensor_msgs::Image ir_img;
 
-	ir_img.header.stamp = ros::Time::now();
+	ir_img.header.seq = head_sequence_id;
+	ir_img.header.stamp = head_time_stamp;
 
 	ir_img.width = ir_mat.cols;
 	ir_img.height = ir_mat.rows;
@@ -297,7 +310,8 @@ pubRealSenseRGBImageMsg(cv::Mat& rgb_mat)
 {
 	sensor_msgs::Image rgb_img;
 
-	rgb_img.header.stamp = ros::Time::now();
+	rgb_img.header.seq = head_sequence_id;
+	rgb_img.header.stamp = head_time_stamp;
 
 	rgb_img.width = rgb_mat.cols;
 	rgb_img.height = rgb_mat.rows;
@@ -594,19 +608,22 @@ processRGBD()
 
 #endif
 
+
+    //pub msgs
+    head_sequence_id++;
+    head_time_stamp = ros::Time::now();
+
+    pubRealSenseRGBImageMsg(rgb_frame);
+#ifdef V4L2_PIX_FMT_INZI
+    pubRealSenseInfraredImageMsg(ir_frame);
+#endif
+    pubRealSenseDepthImageMsg(depth_frame);
+
     pubRealSensePointsXYZCloudMsg(realsense_xyz_cloud);
     if(isHaveD2RGBUVMap)
     {
     	pubRealSensePointsXYZRGBCloudMsg(realsense_xyzrgb_cloud);
     }
-
-
-#ifdef V4L2_PIX_FMT_INZI
-    pubRealSenseInfraredImageMsg(ir_frame);
-#endif
-    pubRealSenseDepthImageMsg(depth_frame);
-    pubRealSenseRGBImageMsg(rgb_frame);
-
 
 }
 
@@ -622,6 +639,38 @@ realsenseConfigCallback(const realsense_camera::realsenseConfig::ConstPtr &confi
 	}
 }
 
+
+bool getRGBUV(realsense_camera::get_rgb_uv::Request  &req,
+                realsense_camera::get_rgb_uv::Response &res)
+{
+    float uvx, uvy;
+
+    if(getUVWithDXY(req.x_min_depth, req.x_min_xy, uvx, uvy))
+    {
+        return false;
+    }
+    res.x_min_uv = (int)(uvx * rgb_stream.width + 0.5f);
+
+    if(getUVWithDXY(req.y_min_depth, req.y_min_xy, uvx, uvy))
+    {
+        return false;
+    }
+    res.y_min_uv = (int)(uvy * rgb_stream.height + 0.5f);
+
+    if(getUVWithDXY(req.x_max_depth, req.x_max_xy, uvx, uvy))
+    {
+        return false;
+    }
+    res.x_max_uv = (int)(uvx * rgb_stream.width + 0.5f);
+
+    if(getUVWithDXY(req.y_max_depth, req.y_max_xy, uvx, uvy))
+    {
+        return false;
+    }
+    res.y_max_uv = (int)(uvy * rgb_stream.height + 0.5f);
+
+    return true;
+}
 
 
 int main(int argc, char* argv[])
@@ -812,7 +861,10 @@ int main(int argc, char* argv[])
     ros::Subscriber config_sub = n.subscribe("/realsense_camera_config", 1, realsenseConfigCallback);
 
 
-    ros::Rate loop_rate(30);
+    getRGBUVService = n.advertiseService("get_rgb_uv", getRGBUV);
+
+
+    ros::Rate loop_rate(60);
 
     while(ros::ok())
     {
