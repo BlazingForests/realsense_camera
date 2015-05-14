@@ -13,7 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 
 # OpenCV
-find_package(OpenCV)
+find_package(OpenCV REQUIRED)
 IF (OPENCV_FOUND)
   MESSAGE("-- Found OpenCV version ${OPENCV_VERSION}: ${OPENCV_INCLUDE_DIRS}")
 ENDIF (OPENCV_FOUND)
@@ -183,7 +183,7 @@ add_dependencies(realsense_camera_config_node realsense_camera_generate_messages
 
 target_link_libraries(realsense_camera_node
   ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
+  ${OpenCV_LIBS}
   ${PCL_LIBRARIES}
   -ludev
 )
