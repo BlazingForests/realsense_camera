@@ -1,6 +1,8 @@
 
 #include "capturer_mmap.h"
 
+#include <map>
+std::map<std::string, int> v4l2_controls_mapping;
 
 void errno_exit (const char *s)
 {
@@ -371,8 +373,46 @@ int close_device (int *fd)
 }
 
 
+int set_control(int *fd, __u32 id, __s32 value)
+{
+    struct v4l2_queryctrl queryctrl;
+    struct v4l2_control control;
 
+    memset(&queryctrl, 0, sizeof(queryctrl));
+    queryctrl.id = id;
 
+    if (-1 == ioctl(*fd, VIDIOC_QUERYCTRL, &queryctrl)) {
+        if (errno != EINVAL) {
+            errno_exit ("VIDIOC_QUERYCTRL");
+            return RESULT_FAILURE;
+        } else {
+            printf("Control %i is not supported\n", (int)id);
+            return RESULT_FAILURE;
+        }
+    } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+        printf("Control %i is not supported\n", (int)id);
+        return RESULT_FAILURE;
+    } else {
+        memset(&control, 0, sizeof (control));
+        control.id = id;
+        control.value = value;
+
+        if (-1 == ioctl(*fd, VIDIOC_S_CTRL, &control)) {
+            errno_exit ("VIDIOC_S_CTRL");
+            return RESULT_FAILURE;
+        }
+    }
+    return RESULT_SUCCESS;
+}
+
+void capturer_mmap_init_v4l2_controls()
+{
+    v4l2_controls_mapping["Laser Power"] = 0x009A0904;
+    v4l2_controls_mapping["Accuracy"] = 0x009A0905;
+    v4l2_controls_mapping["Motion Range Trade Off"] = 0x009A0906;
+    v4l2_controls_mapping["Filter Option"] = 0x009A0907;
+    v4l2_controls_mapping["Confidence Threshold"] = 0x009A0908;
+}
 
 int capturer_mmap_init (PVideoStream p_video_stream)
 {
@@ -425,4 +465,18 @@ void capturer_mmap_exit(PVideoStream p_video_stream)
 
     close_device (&(p_video_stream->fd));
 
+}
+
+int capturer_mmap_set_control(PVideoStream p_video_stream, const std::string &control, int value)
+{
+    std::map<std::string, int>::iterator it = v4l2_controls_mapping.find(control);
+    if (it != v4l2_controls_mapping.end())
+    {
+        return set_control (&(p_video_stream->fd), (__u32)it->second, value);
+    }
+    else
+    {
+        printf("Control %s does not exist", control.c_str());
+        return 1;
+    }
 }
