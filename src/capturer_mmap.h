@@ -13,6 +13,8 @@
 #include <linux/videodev2.h>
 #include <limits.h>
 
+#include <string>
+
 #define RESULT_SUCCESS 0
 #define RESULT_FAILURE 1
 
@@ -47,4 +49,6 @@ int capturer_mmap_get_frame(PVideoStream p_video_stream);
 
 void capturer_mmap_exit(PVideoStream p_video_stream);
 
+void capturer_mmap_init_v4l2_controls();
 
+int capturer_mmap_set_control(PVideoStream p_video_stream, const std::string &control, int value);
