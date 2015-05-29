@@ -576,6 +576,19 @@ processRGBD()
 }
 
 
+int getNumRGBSubscribers()
+{
+    return realsense_reg_points_pub.getNumSubscribers() + realsense_rgb_image_pub.getNumSubscribers();
+}
+ 
+int getNumDepthSubscribers()
+{
+    int n = realsense_points_pub.getNumSubscribers() + realsense_reg_points_pub.getNumSubscribers() + realsense_depth_image_pub.getNumSubscribers();
+#ifdef V4L2_PIX_FMT_INZI
+    n += realsense_infrared_image_pub.getNumSubscribers();
+#endif
+    return n;
+}
 
 void
 realsenseConfigCallback(const realsense_camera::realsenseConfig::ConstPtr &config)
@@ -840,9 +853,15 @@ int main(int argc, char* argv[])
     dynamic_reconfigure_server.setCallback(boost::bind(&dynamicReconfigCallback, _1, _2));
 
     ros::Rate loop_rate(60);
+    ros::Rate idle_rate(1);
 
     while(ros::ok())
     {
+        while ((getNumRGBSubscribers() + getNumDepthSubscribers()) == 0 && ros::ok())
+        {
+            ros::spinOnce();
+            idle_rate.sleep();
+        }
         processRGBD();
 
 #if SHOW_RGBD_FRAME
