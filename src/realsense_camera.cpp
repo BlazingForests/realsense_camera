@@ -26,6 +26,8 @@
 #include "realsense_camera/realsenseConfig.h"
 #include "realsense_camera/get_rgb_uv.h"
 
+#include <dynamic_reconfigure/server.h>
+#include <realsense_camera/RealsenseCameraConfig.h>
 
 
 
@@ -585,6 +587,30 @@ realsenseConfigCallback(const realsense_camera::realsenseConfig::ConstPtr &confi
 	}
 }
 
+void
+dynamicReconfigCallback(realsense_camera::RealsenseCameraConfig &config, uint32_t level)
+{
+    if (capturer_mmap_set_control(&depth_stream, "Laser Power", config.laser_power))
+    {
+        printf("Could not set Laser Power to %i", config.laser_power);
+    }
+    if (capturer_mmap_set_control(&depth_stream, "Accuracy", config.accuracy))
+    {
+        printf("Could not set Accuracy to %i", config.accuracy);
+    }
+    if (capturer_mmap_set_control(&depth_stream, "Motion Range Trade Off", config.motion_range_trade_off))
+    {
+        printf("Could not set Motion Range Trade Off to %i", config.motion_range_trade_off);
+    }
+    if (capturer_mmap_set_control(&depth_stream, "Filter Option", config.filter_option))
+    {
+        printf("Could not set Filter Option to %i", config.filter_option);
+    }
+    if (capturer_mmap_set_control(&depth_stream, "Confidence Threshold", config.confidence_threshold))
+    {
+        printf("Could not set Confidence Threshold to %i", config.confidence_threshold);
+    }
+}
 
 bool getRGBUV(realsense_camera::get_rgb_uv::Request  &req,
                 realsense_camera::get_rgb_uv::Response &res)
@@ -809,6 +835,9 @@ int main(int argc, char* argv[])
 
     getRGBUVService = n.advertiseService("get_rgb_uv", getRGBUV);
 
+    capturer_mmap_init_v4l2_controls();
+    dynamic_reconfigure::Server<realsense_camera::RealsenseCameraConfig> dynamic_reconfigure_server;
+    dynamic_reconfigure_server.setCallback(boost::bind(&dynamicReconfigCallback, _1, _2));
 
     ros::Rate loop_rate(60);
 

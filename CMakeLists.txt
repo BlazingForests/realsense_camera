@@ -5,6 +5,7 @@ project(realsense_camera)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  dynamic_reconfigure
   roscpp
   roslib
   std_msgs
@@ -25,6 +26,9 @@ find_package(PCL 1.7 REQUIRED COMPONENTS
     io
 )
 
+generate_dynamic_reconfigure_options(
+  config/RealsenseCamera.cfg
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -173,6 +177,7 @@ add_executable(realsense_camera_config_node
 
 add_dependencies(realsense_camera_node realsense_camera_generate_messages_cpp)
 add_dependencies(realsense_camera_config_node realsense_camera_generate_messages_cpp)
+add_dependencies(realsense_camera_node ${PROJECT_NAME}_gencfg)
 
 
 ## Specify libraries to link a library or executable target against
