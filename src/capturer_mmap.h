@@ -22,6 +22,15 @@
 
 #define BUFFER_COUNT 2
 
+
+// v4l2 control ids
+// dependent on https://github.com/teknotus/depthview/tree/udev
+#define REALSENSE_LASER_CTRL V4L2_CID_PRIVATE_BASE
+#define REALSENSE_PATTERN_CTRL (V4L2_CID_PRIVATE_BASE + 1)
+#define REALSENSE_EXPOSURE_CTRL (V4L2_CID_PRIVATE_BASE + 2)
+#define REALSENSE_FILTER_CTRL (V4L2_CID_PRIVATE_BASE + 3)
+#define REALSENSE_CONFIDENCE_CTRL (V4L2_CID_PRIVATE_BASE + 4)
+
 //one video frame in memory
 typedef struct video_frame_buffer {
     size_t      length;

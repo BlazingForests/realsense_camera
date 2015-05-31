@@ -407,11 +407,11 @@ int set_control(int *fd, __u32 id, __s32 value)
 
 void capturer_mmap_init_v4l2_controls()
 {
-    v4l2_controls_mapping["Laser Power"] = 0x009A0904;
-    v4l2_controls_mapping["Accuracy"] = 0x009A0905;
-    v4l2_controls_mapping["Motion Range Trade Off"] = 0x009A0906;
-    v4l2_controls_mapping["Filter Option"] = 0x009A0907;
-    v4l2_controls_mapping["Confidence Threshold"] = 0x009A0908;
+    v4l2_controls_mapping["Laser Power"] = REALSENSE_LASER_CTRL;
+    v4l2_controls_mapping["Accuracy"] = REALSENSE_PATTERN_CTRL;
+    v4l2_controls_mapping["Motion Range Trade Off"] = REALSENSE_EXPOSURE_CTRL;
+    v4l2_controls_mapping["Filter Option"] = REALSENSE_FILTER_CTRL;
+    v4l2_controls_mapping["Confidence Threshold"] = REALSENSE_CONFIDENCE_CTRL;
 }
 
 int capturer_mmap_init (PVideoStream p_video_stream)
