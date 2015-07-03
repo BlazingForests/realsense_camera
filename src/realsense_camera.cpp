@@ -267,6 +267,7 @@ pubRealSenseDepthImageMsg(cv::Mat& depth_mat)
 
 	depth_img.header.seq = head_sequence_id;
 	depth_img.header.stamp = head_time_stamp;
+	depth_img.header.frame_id = depth_frame_id;
 
 	depth_img.width = depth_mat.cols;
 	depth_img.height = depth_mat.rows;
@@ -292,6 +293,8 @@ pubRealSenseInfraredImageMsg(cv::Mat& ir_mat)
 
 	ir_img.header.seq = head_sequence_id;
 	ir_img.header.stamp = head_time_stamp;
+	ir_img.header.frame_id = depth_frame_id;
+
 
 	ir_img.width = ir_mat.cols;
 	ir_img.height = ir_mat.rows;
@@ -316,6 +319,7 @@ pubRealSenseRGBImageMsg(cv::Mat& rgb_mat)
 
 	rgb_img.header.seq = head_sequence_id;
 	rgb_img.header.stamp = head_time_stamp;
+	rgb_img.header.frame_id = rgb_frame_id;
 
 	rgb_img.width = rgb_mat.cols;
 	rgb_img.height = rgb_mat.rows;
