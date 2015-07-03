@@ -9,6 +9,8 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/image_encodings.h>
 
+#include <image_transport/image_transport.h>
+
 #include <ros/package.h>
 
 #include <opencv2/opencv.hpp>
@@ -115,10 +117,10 @@ ros::Time head_time_stamp;
 ros::Publisher realsense_points_pub;
 ros::Publisher realsense_reg_points_pub;
 
-ros::Publisher realsense_rgb_image_pub;
-ros::Publisher realsense_depth_image_pub;
+image_transport::Publisher realsense_rgb_image_pub;
+image_transport::Publisher realsense_depth_image_pub;
 #ifdef V4L2_PIX_FMT_INZI
-ros::Publisher realsense_infrared_image_pub;
+image_transport::Publisher realsense_infrared_image_pub;
 #endif
 
 
@@ -265,6 +267,7 @@ pubRealSenseDepthImageMsg(cv::Mat& depth_mat)
 
 	depth_img.header.seq = head_sequence_id;
 	depth_img.header.stamp = head_time_stamp;
+	depth_img.header.frame_id = depth_frame_id;
 
 	depth_img.width = depth_mat.cols;
 	depth_img.height = depth_mat.rows;
@@ -290,6 +293,8 @@ pubRealSenseInfraredImageMsg(cv::Mat& ir_mat)
 
 	ir_img.header.seq = head_sequence_id;
 	ir_img.header.stamp = head_time_stamp;
+	ir_img.header.frame_id = depth_frame_id;
+
 
 	ir_img.width = ir_mat.cols;
 	ir_img.height = ir_mat.rows;
@@ -314,6 +319,7 @@ pubRealSenseRGBImageMsg(cv::Mat& rgb_mat)
 
 	rgb_img.header.seq = head_sequence_id;
 	rgb_img.header.stamp = head_time_stamp;
+	rgb_img.header.frame_id = rgb_frame_id;
 
 	rgb_img.width = rgb_mat.cols;
 	rgb_img.height = rgb_mat.rows;
@@ -662,6 +668,7 @@ int main(int argc, char* argv[])
 {
     ros::init(argc, argv, "realsense_camera_node");
     ros::NodeHandle n;
+    image_transport::ImageTransport image_transport(n);
 
     ros::NodeHandle private_node_handle_("~");
     private_node_handle_.param("rgb_frame_id", rgb_frame_id, std::string("_rgb_optical_frame"));
@@ -836,11 +843,11 @@ int main(int argc, char* argv[])
     realsense_points_pub = n.advertise<sensor_msgs::PointCloud2> (topic_depth_points_id, 1);
     realsense_reg_points_pub = n.advertise<sensor_msgs::PointCloud2>(topic_depth_registered_points_id, 1);
 
-    realsense_rgb_image_pub = n.advertise<sensor_msgs::Image>(topic_image_rgb_raw_id, 1);
-    realsense_depth_image_pub = n.advertise<sensor_msgs::Image>(topic_image_depth_raw_id, 1);
+    realsense_rgb_image_pub = image_transport.advertise(topic_image_rgb_raw_id, 1);
+    realsense_depth_image_pub = image_transport.advertise(topic_image_depth_raw_id, 1);
 
 #ifdef V4L2_PIX_FMT_INZI
-    realsense_infrared_image_pub = n.advertise<sensor_msgs::Image>(topic_image_infrared_raw_id, 1);
+    realsense_infrared_image_pub = image_transport.advertise(topic_image_infrared_raw_id, 1);
 #endif
 
     ros::Subscriber config_sub = n.subscribe("/realsense_camera_config", 1, realsenseConfigCallback);
