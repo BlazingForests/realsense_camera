@@ -6,6 +6,7 @@ project(realsense_camera)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
+  image_transport
   roscpp
   roslib
   std_msgs
