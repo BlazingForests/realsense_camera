@@ -48,9 +48,12 @@
   <build_depend>roscpp</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>dynamic_reconfigure</build_depend>
+  <build_depend>image_transport</build_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>image_transport</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
