@@ -13,7 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
   tf
 )
 
-
 # OpenCV
 find_package(OpenCV REQUIRED)
 IF (OPENCV_FOUND)
@@ -192,6 +191,7 @@ target_link_libraries(realsense_camera_node
   ${OpenCV_LIBS}
   ${PCL_LIBRARIES}
   -ludev
+  -lv4l2
 )
 
 

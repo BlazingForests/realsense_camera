@@ -5,6 +5,11 @@ use realsense camera in ROS
 
 ## New
 
+* Intel maybe release official ROS-Realsense package.
+
+		visit http://roscon.ros.org/2015/   then search realsense
+
+
 * [2015/04/10] Added infrared stream for realsense camera
 
         If you want IR stream, please visit
@@ -44,7 +49,7 @@ realsense_camera
 ## Dependencies
 
 ```
-sudo apt-get install libudev-dev
+sudo apt-get install libudev-dev libv4l-dev
 ```
 
 ## Usage
@@ -109,9 +114,13 @@ Re-plug realsense device then retry
 
 ## Issues
 
-![](https://github.com/BlazingForests/realsense_camera/blob/master/issues/rgb/realsense_rgb_1431245702.jpg)
-![](https://github.com/BlazingForests/realsense_camera/blob/master/issues/rgb/realsense_rgb_1431248335.jpg)
-![](https://github.com/BlazingForests/realsense_camera/blob/master/issues/rgb/realsense_rgb_1431248344.jpg)
+```
+terminate called after throwing an instance of 'boost::exception_detail::clone_impl<boost::exception_detail::error_info_injector<boost::lock_error> >' what():  boost: mutex lock failed in pthread_mutex_lock: Invalid argument
 
+```
+
+```
+//fill point cloud data time: [0.035777 s]     <----  need optimize
+```
 
 

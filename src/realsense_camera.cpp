@@ -35,6 +35,8 @@
 
 #define SHOW_RGBD_FRAME 0
 
+#define USE_BGR24 0
+
 
 using namespace cv;
 using namespace std;
@@ -109,6 +111,10 @@ std::string topic_image_depth_raw_id = "/image/depth_raw";
 std::string topic_image_infrared_raw_id = "/image/ir_raw";
 
 
+//point cloud
+pcl::PointCloud<pcl::PointXYZ>::Ptr realsense_xyz_cloud;
+pcl::PointCloud<PointType>::Ptr realsense_xyzrgb_cloud;
+bool resize_point_cloud = false;
 
 //msgs head
 unsigned int head_sequence_id = 0;
@@ -358,9 +364,13 @@ void initVideoStream()
     memset(&depth_stream, 0, sizeof(VideoStream));
 
     strncpy(rgb_stream.videoName, "/dev/video", 10);
-    rgb_stream.width = 1920;
-    rgb_stream.height = 1080;
+    rgb_stream.width = 1280;//1920;
+    rgb_stream.height = 720;//1080;
+#if USE_BGR24
+    rgb_stream.pixelFormat = V4L2_PIX_FMT_BGR24;
+#else
     rgb_stream.pixelFormat = V4L2_PIX_FMT_YUYV;
+#endif
     rgb_stream.fd = -1;
 
     strncpy(depth_stream.videoName, "/dev/video", 10);
@@ -395,14 +405,32 @@ int processDepth()
 }
 
 
+
+//capturer_mmap_get_frame depth time: [0.000108 s]
+//capturer_mmap_get_frame RGB time: [0.000268 s]
+//get RGBD time: [0.000410 s]
+//CV_YUV2BGR_YUYV time: [0.000776 s]
+//new cv::Mat object RGBD time: [0.000986 s]
+//new point cloud object time: [0.000000 s]
+//fill point cloud data time: [0.035777 s]     <----  need optimize
+//process result time: [0.037211 s]
+
 void
 processRGBD()
 {
+	USE_TIMES_START( start );
+
+	struct timeval process_start, process_end;
+
+	USE_TIMES_START( process_start );
+
     int stream_depth_state = 0;
     int stream_rgb_state = 0;
 
     stream_depth_state = processDepth();
     stream_rgb_state = processRGB();
+
+    USE_TIMES_END_SHOW ( process_start, process_end, "get RGBD time" );
 
     if(stream_depth_state || stream_rgb_state)
     {
@@ -410,37 +438,61 @@ processRGBD()
         return;
     }
 
+    USE_TIMES_START( process_start );
+
 	cv::Mat depth_frame(depth_stream.height, depth_stream.width, CV_8UC1, depth_frame_buffer);
 
 #ifdef V4L2_PIX_FMT_INZI
 	cv::Mat ir_frame(depth_stream.height, depth_stream.width, CV_8UC1, ir_frame_buffer);
 #endif
 
-	cv::Mat rgb_frame_yuv(rgb_stream.height, rgb_stream.width, CV_8UC2, rgb_frame_buffer);
 	cv::Mat rgb_frame;
-
+#if USE_BGR24
+	rgb_frame = cv::Mat(rgb_stream.height, rgb_stream.width, CV_8UC3, rgb_frame_buffer);
 	memcpy(rgb_frame_buffer, rgb_stream.fillbuf, rgb_stream.buflen);
+#else
+	cv::Mat rgb_frame_yuv(rgb_stream.height, rgb_stream.width, CV_8UC2, rgb_frame_buffer);
+	memcpy(rgb_frame_buffer, rgb_stream.fillbuf, rgb_stream.buflen);
+
+	struct timeval cvt_start, cvt_end;
+	USE_TIMES_START( cvt_start );
 	cv::cvtColor(rgb_frame_yuv,rgb_frame,CV_YUV2BGR_YUYV);
+	USE_TIMES_END_SHOW ( cvt_start, cvt_end, "CV_YUV2BGR_YUYV time" );
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr realsense_xyz_cloud (new pcl::PointCloud<pcl::PointXYZ>());
-	realsense_xyz_cloud->width = depth_stream.width;
-	realsense_xyz_cloud->height = depth_stream.height;
-	realsense_xyz_cloud->is_dense = false;
-	realsense_xyz_cloud->points.resize(depth_stream.width * depth_stream.height);
+#endif
 
-    pcl::PointCloud<PointType>::Ptr realsense_xyzrgb_cloud;
-    if(isHaveD2RGBUVMap)
-    {
-    	realsense_xyzrgb_cloud.reset(new pcl::PointCloud<PointType>());
+	USE_TIMES_END_SHOW ( process_start, process_end, "new cv::Mat object RGBD time" );
 
-		realsense_xyzrgb_cloud->width = depth_stream.width;
-		realsense_xyzrgb_cloud->height = depth_stream.height;
-		realsense_xyzrgb_cloud->is_dense = false;
-		realsense_xyzrgb_cloud->points.resize(depth_stream.width * depth_stream.height);
-    }
 
+	USE_TIMES_START( process_start );
+
+	if(!resize_point_cloud)
+	{
+		realsense_xyz_cloud.reset(new pcl::PointCloud<pcl::PointXYZ>());
+		realsense_xyz_cloud->width = depth_stream.width;
+		realsense_xyz_cloud->height = depth_stream.height;
+		realsense_xyz_cloud->is_dense = false;
+		realsense_xyz_cloud->points.resize(depth_stream.width * depth_stream.height);
+
+		if(isHaveD2RGBUVMap)
+		{
+			realsense_xyzrgb_cloud.reset(new pcl::PointCloud<PointType>());
+			realsense_xyzrgb_cloud->width = depth_stream.width;
+			realsense_xyzrgb_cloud->height = depth_stream.height;
+			realsense_xyzrgb_cloud->is_dense = false;
+			realsense_xyzrgb_cloud->points.resize(depth_stream.width * depth_stream.height);
+		}
+
+		resize_point_cloud = true;
+	}
+
+    USE_TIMES_END_SHOW ( process_start, process_end, "new point cloud object time" );
+
+
+    USE_TIMES_START( process_start );
 
     //depth value
+	//#pragma omp parallel for
     for(int i=0; i<depth_stream.width * depth_stream.height; ++i)
     {
     	float depth = 0;
@@ -541,6 +593,7 @@ processRGBD()
 
     }
 
+    USE_TIMES_END_SHOW ( process_start, process_end, "fill point cloud data time" );
 
     if(debug_depth_unit && center_z_count)
     {
@@ -611,23 +664,23 @@ dynamicReconfigCallback(realsense_camera::RealsenseCameraConfig &config, uint32_
 {
     if (capturer_mmap_set_control(&depth_stream, "Laser Power", config.laser_power))
     {
-        printf("Could not set Laser Power to %i", config.laser_power);
+        printf("Could not set Laser Power to %i\n", config.laser_power);
     }
     if (capturer_mmap_set_control(&depth_stream, "Accuracy", config.accuracy))
     {
-        printf("Could not set Accuracy to %i", config.accuracy);
+        printf("Could not set Accuracy to %i\n", config.accuracy);
     }
     if (capturer_mmap_set_control(&depth_stream, "Motion Range Trade Off", config.motion_range_trade_off))
     {
-        printf("Could not set Motion Range Trade Off to %i", config.motion_range_trade_off);
+        printf("Could not set Motion Range Trade Off to %i\n", config.motion_range_trade_off);
     }
     if (capturer_mmap_set_control(&depth_stream, "Filter Option", config.filter_option))
     {
-        printf("Could not set Filter Option to %i", config.filter_option);
+        printf("Could not set Filter Option to %i\n", config.filter_option);
     }
     if (capturer_mmap_set_control(&depth_stream, "Confidence Threshold", config.confidence_threshold))
     {
-        printf("Could not set Confidence Threshold to %i", config.confidence_threshold);
+        printf("Could not set Confidence Threshold to %i\n", config.confidence_threshold);
     }
 }
 
@@ -833,7 +886,11 @@ int main(int argc, char* argv[])
 
     printf("RealSense Camera is running!\n");
 
+#if USE_BGR24
+    rgb_frame_buffer = new unsigned char[rgb_stream.width * rgb_stream.height * 3];
+#else
     rgb_frame_buffer = new unsigned char[rgb_stream.width * rgb_stream.height * 2];
+#endif
     depth_frame_buffer = new unsigned char[depth_stream.width * depth_stream.height];
 
 #ifdef V4L2_PIX_FMT_INZI

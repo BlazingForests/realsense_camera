@@ -11,6 +11,8 @@
 #include <sys/ioctl.h>
 #include <asm/types.h>
 #include <linux/videodev2.h>
+#include <libv4l1.h>
+#include <libv4l2.h>
 #include <limits.h>
 
 #include <string>
@@ -20,7 +22,7 @@
 
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
 
-#define BUFFER_COUNT 2
+#define BUFFER_COUNT 1
 
 
 // v4l2 control ids

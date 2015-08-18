@@ -14,10 +14,12 @@ int xioctl (int fd, int request, void *arg)
 {
 	int r;
 
-	r = ioctl (fd, request, arg);
+	do r = v4l2_ioctl (fd, request, arg);
+	while (-1 == r && EINTR == errno);
 
 	return r;
 }
+
 
 void fcc2s(char *str, unsigned int val)
 {
@@ -33,7 +35,7 @@ void fcc2s(char *str, unsigned int val)
 int open_device (int * fd, char * dev_name)
 {
 
-    *fd = open (dev_name, O_RDWR | O_NONBLOCK);
+    *fd = v4l2_open (dev_name, O_RDWR | O_NONBLOCK, 0);
 
     if (-1 == *fd)
     {
@@ -49,6 +51,51 @@ int open_device (int * fd, char * dev_name)
 int init_device(int *fd, char *dev_name,
                 int *width, int *height, unsigned int *pixel_format )
 {
+	struct v4l2_capability cap;
+	CLEAR(cap);
+
+	if (-1 == xioctl (*fd, VIDIOC_QUERYCAP, &cap))
+	{
+		errno_exit ("VIDIOC_QUERYCAP");
+		return RESULT_FAILURE;
+	}
+
+	printf ("\n============== VIDIOC_QUERYCAP\n"
+			"%s \n"
+			"   driver = %s\n"
+			"   card = %s\n"
+			"   bus_info = %s\n"
+			"   version = 0x%08X\n"
+			"   capabilities = 0x%08X\n"
+			"   device_caps = 0x%08X\n"
+			"   reserved[3] = [0x%08X, 0x%08X, 0x%08X]\n\n",
+			dev_name,
+			cap.driver,
+			cap.card,
+			cap.bus_info,
+			cap.version,
+			cap.capabilities,
+			cap.device_caps,
+			cap.reserved[0], cap.reserved[1], cap.reserved[2] );
+
+	struct video_capability capability;
+	CLEAR(capability);
+	capability.type = cap.capabilities;
+
+	/* Query channels number */
+	if (-1 == xioctl (*fd, VIDIOC_G_INPUT, &capability.channels))
+	{
+		errno_exit ("VIDIOC_G_INPUT");
+		return RESULT_FAILURE;
+	}
+
+	printf ("\n============== VIDIOC_G_INPUT\n"
+				"%s \n"
+				"   channels = %d\n\n",
+				dev_name,
+				capability.channels );
+
+
     struct v4l2_format fmt;
     char pixel_str[5] = {0};
 
@@ -85,6 +132,11 @@ int init_device(int *fd, char *dev_name,
             fmt.fmt.pix.sizeimage,
             fmt.fmt.pix.colorspace,
             fmt.fmt.pix.priv );
+
+
+    memset(&fmt, 0, sizeof(struct v4l2_format));
+    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    fmt.fmt.pix.field       = V4L2_FIELD_ANY;
 
     //set
     fmt.fmt.pix.width       = *width;
@@ -126,6 +178,27 @@ int init_device(int *fd, char *dev_name,
     *height = fmt.fmt.pix.height;
     *pixel_format = fmt.fmt.pix.pixelformat;
 
+    /* try to set framerate to 30 fps */
+	struct v4l2_streamparm setfps;
+	memset (&setfps, 0, sizeof(struct v4l2_streamparm));
+	setfps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	setfps.parm.capture.timeperframe.numerator = 1;
+	setfps.parm.capture.timeperframe.denominator = 30;
+	if (-1 == xioctl (*fd, VIDIOC_S_PARM, &setfps))
+	{
+		errno_exit ("VIDIOC_S_PARM");
+		return RESULT_FAILURE;
+	}
+
+	printf ("\n============ VIDIOC_S_PARM\n"
+	            "%s \n"
+	            "v4l2_streamparm\n"
+	            "   timeperframe.numerator = %d\n"
+	            "   timeperframe.denominator = %d\n\n",
+	            dev_name,
+				setfps.parm.capture.timeperframe.numerator,
+				setfps.parm.capture.timeperframe.denominator );
+
     return RESULT_SUCCESS;
 }
 
@@ -154,46 +227,50 @@ int init_mmap (int * fd, char * dev_name, FrameBuffer *framebuffer, void **fillb
         return RESULT_FAILURE;
     }
 
-    struct v4l2_buffer buf[BUFFER_COUNT];
     for(unsigned int i=0; i<BUFFER_COUNT; ++i)
     {
-        memset(&buf[i], 0, sizeof(v4l2_buffer));
+    	struct v4l2_buffer buf;
+    	CLEAR(buf);
 
-        buf[i].type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        buf[i].memory      = V4L2_MEMORY_MMAP;
-        buf[i].index       = i;
+        buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        buf.memory      = V4L2_MEMORY_MMAP;
+        buf.index       = i;
 
-        if (-1 == xioctl (*fd, VIDIOC_QUERYBUF, &buf[i]))
+        if (-1 == xioctl (*fd, VIDIOC_QUERYBUF, &buf))
         {
             errno_exit ("VIDIOC_QUERYBUF");
             return RESULT_FAILURE;
         }
+
+        framebuffer[i].mmapbuf = v4l2_mmap( NULL,
+										   buf.length,
+										   PROT_READ | PROT_WRITE /* required */,
+										   MAP_SHARED /* recommended */,
+										   *fd,
+										   buf.m.offset);
+
+		if (MAP_FAILED == framebuffer[i].mmapbuf)
+		{
+			errno_exit ("v4l2_mmap");
+			return RESULT_FAILURE;
+		}
+
+		framebuffer[i].length = buf.length;
     }
+
+    *fillbuf = malloc(framebuffer[0].length);
+    *buflen = framebuffer[0].length;
 
     for(unsigned int i=0; i<BUFFER_COUNT; ++i)
     {
-        framebuffer[i].mmapbuf = mmap( NULL,
-                                       buf[i].length,
-                                       PROT_READ | PROT_WRITE /* required */,
-                                       MAP_SHARED /* recommended */,
-                                       *fd,
-                                       buf[i].m.offset);
+    	struct v4l2_buffer buf;
+    	CLEAR(buf);
 
-        if (MAP_FAILED == framebuffer[i].mmapbuf)
-        {
-            errno_exit ("mmap");
-            return RESULT_FAILURE;
-        }
+    	buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		buf.memory      = V4L2_MEMORY_MMAP;
+		buf.index       = i;
 
-        framebuffer[i].length = buf[i].length;
-    }
-
-    *fillbuf = malloc(buf[0].length);
-    *buflen = buf[0].length;
-
-    for(unsigned int i=0; i<BUFFER_COUNT; ++i)
-    {
-        if (-1 == xioctl (*fd, VIDIOC_QBUF, &buf[i]))
+        if (-1 == xioctl (*fd, VIDIOC_QBUF, &buf))
         {
             errno_exit ("VIDIOC_QBUF");
             return RESULT_FAILURE;
@@ -297,19 +374,22 @@ int mainloop(int * fd, FrameBuffer *buffer, void **fillbuf)
 		if (0 == r)
 		{
 		    errno_exit ("select timeout");
-            continue;
+            break;
 		}
 
 		//read one frame from the device and put on the buffer
         if(read_frame (fd, buffer, fillbuf))
         {
-            continue;
+            break;
         }
 
         read_ok = 1;
 	}
 
-    return RESULT_SUCCESS;
+    if(read_ok)
+    	return RESULT_SUCCESS;
+
+    return RESULT_FAILURE;
 }
 
 
@@ -329,12 +409,12 @@ int stop_capturing (int * fd)
 
 
 //free the shared memory area
-int uninit_device (int *fd, FrameBuffer *buffer, void **fillbuf)
+int release_device (int *fd, FrameBuffer *buffer, void **fillbuf)
 {
     for(unsigned int i=0; i<BUFFER_COUNT; ++i)
     {
-        if (-1 == munmap (buffer[i].mmapbuf, buffer[i].length))
-            errno_exit ("munmap");
+        if (-1 == v4l2_munmap (buffer[i].mmapbuf, buffer[i].length))
+            errno_exit ("v4l2_munmap");
 
         buffer[i].mmapbuf = NULL;
         buffer[i].length = 0;
@@ -364,8 +444,8 @@ int uninit_device (int *fd, FrameBuffer *buffer, void **fillbuf)
 
 int close_device (int *fd)
 {
-	if (-1 == close (*fd))
-		errno_exit ("close fd");
+	if (-1 == v4l2_close (*fd))
+		errno_exit ("v4l2_close");
 
 	*fd = -1;
 
@@ -418,7 +498,8 @@ int capturer_mmap_init (PVideoStream p_video_stream)
 {
     if(open_device(&(p_video_stream->fd), p_video_stream->videoName))
     {
-        return 1;
+    	capturer_mmap_exit(p_video_stream);
+        return RESULT_FAILURE;
     }
 
     if(init_device(&(p_video_stream->fd),
@@ -427,7 +508,8 @@ int capturer_mmap_init (PVideoStream p_video_stream)
                    &(p_video_stream->height),
                    &(p_video_stream->pixelFormat) ))
     {
-        return 1;
+    	capturer_mmap_exit(p_video_stream);
+        return RESULT_FAILURE;
     }
 
     if(init_mmap (  &(p_video_stream->fd),
@@ -436,15 +518,17 @@ int capturer_mmap_init (PVideoStream p_video_stream)
                     &(p_video_stream->fillbuf),
                     &p_video_stream->buflen ))
     {
-        return 1;
+    	capturer_mmap_exit(p_video_stream);
+        return RESULT_FAILURE;
     }
 
     if(start_capturing(&(p_video_stream->fd)))
     {
-        return 1;
+    	capturer_mmap_exit(p_video_stream);
+        return RESULT_FAILURE;
     }
 
-    return 0;
+    return RESULT_SUCCESS;
 }
 
 
@@ -461,7 +545,7 @@ void capturer_mmap_exit(PVideoStream p_video_stream)
 
     stop_capturing (&(p_video_stream->fd));
 
-    uninit_device (&(p_video_stream->fd), p_video_stream->frameBuffer, &(p_video_stream->fillbuf));
+    release_device (&(p_video_stream->fd), p_video_stream->frameBuffer, &(p_video_stream->fillbuf));
 
     close_device (&(p_video_stream->fd));
 
@@ -476,7 +560,7 @@ int capturer_mmap_set_control(PVideoStream p_video_stream, const std::string &co
     }
     else
     {
-        printf("Control %s does not exist", control.c_str());
-        return 1;
+        printf("Control %s does not exist\n", control.c_str());
+        return RESULT_FAILURE;
     }
 }
