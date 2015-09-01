@@ -88,6 +88,10 @@ unsigned char *ir_frame_buffer = NULL;
 
 const int sensor_depth_max = 1200;
 
+//"Intel(R) RealSense(TM) 3D Camer"   	F200
+//"Intel RealSense 3D Camera R200"		R200
+std::string realsense_camera_type = "Intel(R) RealSense(TM) 3D Camer";
+
 std::string rgb_frame_id = "_rgb_optical_frame";
 std::string depth_frame_id = "_depth_optical_frame";
 
@@ -724,6 +728,8 @@ int main(int argc, char* argv[])
     image_transport::ImageTransport image_transport(n);
 
     ros::NodeHandle private_node_handle_("~");
+    private_node_handle_.param("realsense_camera_type", realsense_camera_type, std::string("Intel(R) RealSense(TM) 3D Camer"));
+
     private_node_handle_.param("rgb_frame_id", rgb_frame_id, std::string("_rgb_optical_frame"));
     private_node_handle_.param("depth_frame_id", depth_frame_id, std::string("_depth_optical_frame"));
 
@@ -761,6 +767,7 @@ int main(int argc, char* argv[])
 
 
     printf("\n\n===================\n"
+    		"realsense_camera_type = %s\n"
     		"rgb_frame_id = %s\n"
     		"depth_frame_id = %s\n"
     		"depth_unit = %f\n"
@@ -779,6 +786,7 @@ int main(int argc, char* argv[])
             "debug_depth_unit = %d\n"
     		"=======================\n\n",
 
+			realsense_camera_type.c_str(),
 			rgb_frame_id.c_str(),
 			depth_frame_id.c_str(),
 			depth_unit,
@@ -809,13 +817,13 @@ int main(int argc, char* argv[])
 #endif
 
     //find realsense video device
-    std::string target_device_name = "Intel(R) RealSense(TM) 3D Camer";
     std::vector<VIDEO_DEVICE> video_lists;
-    list_devices(target_device_name, video_lists);
+    list_devices(realsense_camera_type, video_lists);
 
     if(video_lists.empty())
     {
-        printf("can not find Intel(R) RealSense(TM) 3D Camer video device!!!!!!!!!\n");
+        printf("\n\n""can not find Intel(R) RealSense(TM) 3D Camera video device!!!!!!!!! - %s\n\n", realsense_camera_type.c_str());
+        ROS_ERROR("can not find Intel(R) RealSense(TM) 3D Camera video device!!!!!!!!! - %s", realsense_camera_type.c_str());
         ros::shutdown();
         return 0;
     }
@@ -823,7 +831,7 @@ int main(int argc, char* argv[])
     if(1)
     {
     	printf("\n===========================================\n");
-    	printf("Intel(R) RealSense(TM) 3D Camer lists\n");
+    	printf("Intel(R) RealSense(TM) 3D Camera lists\n");
 
     	for(int i=0; i<video_lists.size(); ++i)
     	{
@@ -841,7 +849,7 @@ int main(int argc, char* argv[])
 
     if(video_lists[0].video_names.size() < 2)
 	{
-		printf("Intel(R) RealSense(TM) 3D Camer video device count error!!!!!!!!!!!\n");
+		printf("Intel(R) RealSense(TM) 3D Camera video device count error!!!!!!!!!!!\n");
 		ros::shutdown();
 		return 0;
 	}

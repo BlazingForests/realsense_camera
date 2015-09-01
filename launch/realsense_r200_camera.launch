@@ -1,27 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
 
-    <!--
-    The unit of depth values in micrometer if PIXEL_FORMAT_DEPTH_RAW
-    31.250000
-    
-    The depth-sensor horizontal and vertical field of view parameters, in degrees.
-    x, y = 72.000000, 55.000000
-    
-    The depth-sensor, sensing distance parameters, in millimeters.
-    min, max = 0.000000, 2047.000000
-    
-    The depth-sensor focal length in pixels. The parameters vary with the resolution setting.
-    x, y = 463.888885, 463.888885
-    
-    The depth-sensor focal length in mm.
-    1.670000
-    
-    The depth-sensor principal point in pixels. The parameters vary with the resolution setting.
-    x, y = 320.000000, 240.000000
-    -->
-    
-    <arg name="realsense_camera_type" default="Intel(R) RealSense(TM) 3D Camer" />
+    <arg name="realsense_camera_type" default="Intel RealSense 3D Camera R200" />
     
     <arg name="camera" default="camera" />
     <arg name="rgb_frame_id" default="$(arg camera)_rgb_optical_frame" />
