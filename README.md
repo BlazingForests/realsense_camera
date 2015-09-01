@@ -5,6 +5,8 @@ use realsense camera in ROS
 
 ## New
 
+* Add R200 support, But still in test, Because i don't have the R200 device now.
+
 * Intel maybe release official ROS-Realsense package.
 
 		visit http://roscon.ros.org/2015/   then search realsense
