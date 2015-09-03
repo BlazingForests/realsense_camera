@@ -95,6 +95,9 @@ std::string realsense_camera_type = "Intel(R) RealSense(TM) 3D Camer";
 std::string rgb_frame_id = "_rgb_optical_frame";
 std::string depth_frame_id = "_depth_optical_frame";
 
+int rgb_frame_w = 1280;
+int rgb_frame_h = 720;
+
 float depth_unit = 31.25f;
 float depth_scale = 0.001f;
 
@@ -368,8 +371,8 @@ void initVideoStream()
     memset(&depth_stream, 0, sizeof(VideoStream));
 
     strncpy(rgb_stream.videoName, "/dev/video", 10);
-    rgb_stream.width = 1280;//1920;
-    rgb_stream.height = 720;//1080;
+    rgb_stream.width = rgb_frame_w;//640;//1280;//1920;
+    rgb_stream.height = rgb_frame_h;//480;//720;//1080;
 #if USE_BGR24
     rgb_stream.pixelFormat = V4L2_PIX_FMT_BGR24;
 #else
@@ -732,6 +735,9 @@ int main(int argc, char* argv[])
 
     private_node_handle_.param("rgb_frame_id", rgb_frame_id, std::string("_rgb_optical_frame"));
     private_node_handle_.param("depth_frame_id", depth_frame_id, std::string("_depth_optical_frame"));
+
+    private_node_handle_.param("rgb_frame_w", rgb_frame_w, 1280);
+    private_node_handle_.param("rgb_frame_h", rgb_frame_h, 720);
 
     double depth_unit_d, depth_scale_d;
     private_node_handle_.param("depth_unit", depth_unit_d, 31.25);

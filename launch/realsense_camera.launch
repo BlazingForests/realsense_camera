@@ -27,6 +27,8 @@
     <arg name="rgb_frame_id" default="$(arg camera)_rgb_optical_frame" />
     <arg name="depth_frame_id" default="$(arg camera)_depth_optical_frame" />
 
+	<arg name="rgb_frame_w" default="1280" />
+	<arg name="rgb_frame_h" default="720" />
 
     <arg name="depth_unit" default="33.1" />
     <arg name="depth_scale" default="0.001" />
@@ -56,6 +58,9 @@
 
     <node name="realsense_node" pkg="realsense_camera" type="realsense_camera_node" output="screen">
     	<param name="realsense_camera_type" value="$(arg realsense_camera_type)" />
+    	
+    	<param name="rgb_frame_w" value="$(arg rgb_frame_w)" />
+    	<param name="rgb_frame_h" value="$(arg rgb_frame_h)" />
     	
         <param name="rgb_frame_id" value="$(arg rgb_frame_id)" />
         <param name="depth_frame_id" value="$(arg depth_frame_id)" />
