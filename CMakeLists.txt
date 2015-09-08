@@ -218,10 +218,10 @@ target_link_libraries(realsense_camera_config_node
 ## Mark executables and/or libraries for installation
 install(
   TARGETS
-    realsense_camera
+    realsense_camera_node
     realsense_camera_config_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+)
 
 ## Mark cpp header files for installation
 # install(DIRECTORY include/${PROJECT_NAME}/
