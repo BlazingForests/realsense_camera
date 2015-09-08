@@ -7,6 +7,7 @@ project(realsense_camera)
 find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   image_transport
+  message_generation
   roscpp
   roslib
   std_msgs
@@ -104,7 +105,7 @@ add_service_files(
 
 generate_messages(
   DEPENDENCIES
-  realsense_camera
+  std_msgs
 )
 
 
@@ -120,7 +121,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES realsense_camera
-#  CATKIN_DEPENDS roscpp std_msgs
+  CATKIN_DEPENDS message_runtime std_msgs
 #  DEPENDS system_lib
 )
 
