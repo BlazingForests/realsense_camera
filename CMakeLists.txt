@@ -140,13 +140,6 @@ include_directories(
 
 
 
-link_directories(
-  ${OpenCV_LIBRARY_DIRS}
-  ${PCL_LIBRARY_DIRS}
-)
-
-
-
 add_definitions(
   ${OpenCV_DEFINITIONS}
   ${PCL_DEFINITIONS}
