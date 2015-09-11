@@ -54,6 +54,12 @@ realsense_camera
 sudo apt-get install libudev-dev libv4l-dev
 ```
 
+To make sure the dynamic reconfigure works, Please visit
+
+```
+https://github.com/teknotus/depthview/tree/udev
+```
+
 ## Usage
 
 * launch realsense camera and rviz
