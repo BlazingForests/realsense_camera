@@ -10,6 +10,7 @@
 #include <sensor_msgs/image_encodings.h>
 
 #include <image_transport/image_transport.h>
+#include <camera_info_manager/camera_info_manager.h>
 
 #include <ros/package.h>
 
@@ -130,8 +131,11 @@ ros::Time head_time_stamp;
 ros::Publisher realsense_points_pub;
 ros::Publisher realsense_reg_points_pub;
 
-image_transport::Publisher realsense_rgb_image_pub;
+image_transport::CameraPublisher realsense_rgb_image_pub;
 image_transport::Publisher realsense_depth_image_pub;
+
+boost::shared_ptr<camera_info_manager::CameraInfoManager> rgb_info_manager_;
+
 #ifdef V4L2_PIX_FMT_INZI
 image_transport::Publisher realsense_infrared_image_pub;
 #endif
@@ -325,6 +329,35 @@ pubRealSenseInfraredImageMsg(cv::Mat& ir_mat)
 }
 #endif
 
+sensor_msgs::CameraInfoPtr
+getRGBCameraInfo(int width, int height, const std::string &frame_id, const ros::Time &stamp)
+{
+    sensor_msgs::CameraInfoPtr camera_info;
+
+    if (rgb_info_manager_ && rgb_info_manager_->isCalibrated())
+    {
+        camera_info = boost::make_shared<sensor_msgs::CameraInfo>(rgb_info_manager_->getCameraInfo());
+
+        if (camera_info->width != width || camera_info->height != height)
+        {
+            ROS_WARN("RGB image resolution does not match calibration file");
+            camera_info.reset(new sensor_msgs::CameraInfo());
+            camera_info->width = width;
+            camera_info->height = height;
+        }
+    }
+    else
+    {
+        camera_info = boost::shared_ptr<sensor_msgs::CameraInfo>(new sensor_msgs::CameraInfo());
+        camera_info->width = width;
+        camera_info->height = height;
+    }
+
+    camera_info->header.frame_id = frame_id;
+    camera_info->header.stamp = stamp;
+    return camera_info;
+}
+
 void
 pubRealSenseRGBImageMsg(cv::Mat& rgb_mat)
 {
@@ -346,7 +379,7 @@ pubRealSenseRGBImageMsg(cv::Mat& rgb_mat)
 	rgb_img.data.resize(size);
 	memcpy(&rgb_img.data[0], rgb_mat.data, size);
 
-	realsense_rgb_image_pub.publish(rgb_img);
+	realsense_rgb_image_pub.publish(rgb_img, *(getRGBCameraInfo(rgb_img.width, rgb_img.height, rgb_img.header.frame_id, rgb_img.header.stamp)));
 
 
 	//save rgb img
@@ -914,12 +947,21 @@ int main(int argc, char* argv[])
     realsense_points_pub = n.advertise<sensor_msgs::PointCloud2> (topic_depth_points_id, 1);
     realsense_reg_points_pub = n.advertise<sensor_msgs::PointCloud2>(topic_depth_registered_points_id, 1);
 
-    realsense_rgb_image_pub = image_transport.advertise(topic_image_rgb_raw_id, 1);
+    realsense_rgb_image_pub = image_transport.advertiseCamera(topic_image_rgb_raw_id, 1);
     realsense_depth_image_pub = image_transport.advertise(topic_image_depth_raw_id, 1);
 
 #ifdef V4L2_PIX_FMT_INZI
     realsense_infrared_image_pub = image_transport.advertise(topic_image_infrared_raw_id, 1);
 #endif
+
+    
+    if (private_node_handle_.hasParam("rgb_camera_info_url"))
+    {
+        std::string camera_name_rgb = "realsense_camera_rgb_" + useDeviceSerialNum;
+        std::string rgb_info_url;
+        private_node_handle_.getParam("rgb_camera_info_url", rgb_info_url);
+        rgb_info_manager_ = boost::make_shared<camera_info_manager::CameraInfoManager>(n, camera_name_rgb, rgb_info_url);
+    }
 
     ros::Subscriber config_sub = n.subscribe("/realsense_camera_config", 1, realsenseConfigCallback);
 
