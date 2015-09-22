@@ -7,6 +7,7 @@ project(realsense_camera)
 find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   image_transport
+  message_generation
   roscpp
   roslib
   std_msgs
@@ -15,9 +16,9 @@ find_package(catkin REQUIRED COMPONENTS
 
 # OpenCV
 find_package(OpenCV REQUIRED)
-IF (OPENCV_FOUND)
-  MESSAGE("-- Found OpenCV version ${OPENCV_VERSION}: ${OPENCV_INCLUDE_DIRS}")
-ENDIF (OPENCV_FOUND)
+if (OPENCV_FOUND)
+  message("-- Found OpenCV version ${OPENCV_VERSION}: ${OPENCV_INCLUDE_DIRS}")
+endif ()
 
 
 # PCL
@@ -103,7 +104,7 @@ add_service_files(
 
 generate_messages(
   DEPENDENCIES
-  realsense_camera
+  std_msgs
 )
 
 
@@ -119,7 +120,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES realsense_camera
-#  CATKIN_DEPENDS roscpp std_msgs
+  CATKIN_DEPENDS message_runtime std_msgs
 #  DEPENDS system_lib
 )
 
@@ -134,13 +135,6 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
-)
-
-
-
-link_directories(
-  ${OpenCV_LIBRARY_DIRS}
-  ${PCL_LIBRARY_DIRS}
 )
 
 
@@ -215,11 +209,12 @@ target_link_libraries(realsense_camera_config_node
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS realsense_camera realsense_camera_node
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+install(
+  TARGETS
+    realsense_camera_node
+    realsense_camera_config_node
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark cpp header files for installation
 # install(DIRECTORY include/${PROJECT_NAME}/
