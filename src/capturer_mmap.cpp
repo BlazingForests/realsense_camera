@@ -78,22 +78,22 @@ int init_device(int *fd, char *dev_name,
 			cap.device_caps,
 			cap.reserved[0], cap.reserved[1], cap.reserved[2] );
 
-	struct video_capability capability;
-	CLEAR(capability);
-	capability.type = cap.capabilities;
-
-	/* Query channels number */
-	if (-1 == xioctl (*fd, VIDIOC_G_INPUT, &capability.channels))
-	{
-		errno_exit ("VIDIOC_G_INPUT");
-		return RESULT_FAILURE;
-	}
-
-	printf ("\n============== VIDIOC_G_INPUT\n"
-				"%s \n"
-				"   channels = %d\n\n",
-				dev_name,
-				capability.channels );
+//	struct video_capability capability;
+//	CLEAR(capability);
+//	capability.type = cap.capabilities;
+//
+//	/* Query channels number */
+//	if (-1 == xioctl (*fd, VIDIOC_G_INPUT, &capability.channels))
+//	{
+//		errno_exit ("VIDIOC_G_INPUT");
+//		return RESULT_FAILURE;
+//	}
+//
+//	printf ("\n============== VIDIOC_G_INPUT\n"
+//				"%s \n"
+//				"   channels = %d\n\n",
+//				dev_name,
+//				capability.channels );
 
 
     struct v4l2_format fmt;
