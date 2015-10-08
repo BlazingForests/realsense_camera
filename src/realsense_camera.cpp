@@ -132,14 +132,14 @@ ros::Publisher realsense_points_pub;
 ros::Publisher realsense_reg_points_pub;
 
 image_transport::CameraPublisher realsense_rgb_image_pub;
-image_transport::Publisher realsense_depth_image_pub;
+image_transport::CameraPublisher realsense_depth_image_pub;
 #ifdef V4L2_PIX_FMT_INZI
-image_transport::Publisher realsense_infrared_image_pub;
+image_transport::CameraPublisher realsense_infrared_image_pub;
 #endif
 
 // used to read and publish camera calibration parameters
-boost::shared_ptr<camera_info_manager::CameraInfoManager> rgb_info_manager;
 sensor_msgs::CameraInfoPtr rgb_camera_info;
+sensor_msgs::CameraInfoPtr ir_camera_info;
 
 ros::ServiceServer getRGBUVService;
 
@@ -280,25 +280,29 @@ pubRealSensePointsXYZRGBCloudMsg(pcl::PointCloud<PointType>::Ptr &xyzrgb_input)
 void
 pubRealSenseDepthImageMsg(cv::Mat& depth_mat)
 {
-	sensor_msgs::Image depth_img;
+	sensor_msgs::ImagePtr depth_img(new sensor_msgs::Image);
 
-	depth_img.header.seq = head_sequence_id;
-	depth_img.header.stamp = head_time_stamp;
-	depth_img.header.frame_id = depth_frame_id;
+	depth_img->header.seq = head_sequence_id;
+	depth_img->header.stamp = head_time_stamp;
+	depth_img->header.frame_id = depth_frame_id;
 
-	depth_img.width = depth_mat.cols;
-	depth_img.height = depth_mat.rows;
+	depth_img->width = depth_mat.cols;
+	depth_img->height = depth_mat.rows;
 
-	depth_img.encoding = sensor_msgs::image_encodings::MONO8;
-	depth_img.is_bigendian = 0;
+	depth_img->encoding = sensor_msgs::image_encodings::MONO8;
+	depth_img->is_bigendian = 0;
 
-	int step = sizeof(unsigned char) * depth_img.width;
-	int size = step * depth_img.height;
-	depth_img.step = step;
-	depth_img.data.resize(size);
-	memcpy(&depth_img.data[0], depth_mat.data, size);
+	int step = sizeof(unsigned char) * depth_img->width;
+	int size = step * depth_img->height;
+	depth_img->step = step;
+	depth_img->data.resize(size);
+	memcpy(&depth_img->data[0], depth_mat.data, size);
 
-	realsense_depth_image_pub.publish(depth_img);
+	ir_camera_info->header.frame_id = depth_frame_id;
+	ir_camera_info->header.stamp = head_time_stamp;
+	ir_camera_info->header.seq = head_sequence_id;
+
+	realsense_depth_image_pub.publish(depth_img, ir_camera_info);
 }
 
 
@@ -306,26 +310,30 @@ pubRealSenseDepthImageMsg(cv::Mat& depth_mat)
 void
 pubRealSenseInfraredImageMsg(cv::Mat& ir_mat)
 {
-	sensor_msgs::Image ir_img;
+	sensor_msgs::ImagePtr ir_img(new sensor_msgs::Image);;
 
-	ir_img.header.seq = head_sequence_id;
-	ir_img.header.stamp = head_time_stamp;
-	ir_img.header.frame_id = depth_frame_id;
+	ir_img->header.seq = head_sequence_id;
+	ir_img->header.stamp = head_time_stamp;
+	ir_img->header.frame_id = depth_frame_id;
 
 
-	ir_img.width = ir_mat.cols;
-	ir_img.height = ir_mat.rows;
+	ir_img->width = ir_mat.cols;
+	ir_img->height = ir_mat.rows;
 
-	ir_img.encoding = sensor_msgs::image_encodings::MONO8;
-	ir_img.is_bigendian = 0;
+	ir_img->encoding = sensor_msgs::image_encodings::MONO8;
+	ir_img->is_bigendian = 0;
 
-	int step = sizeof(unsigned char) * ir_img.width;
-	int size = step * ir_img.height;
-	ir_img.step = step;
-	ir_img.data.resize(size);
-	memcpy(&ir_img.data[0], ir_mat.data, size);
+	int step = sizeof(unsigned char) * ir_img->width;
+	int size = step * ir_img->height;
+	ir_img->step = step;
+	ir_img->data.resize(size);
+	memcpy(&ir_img->data[0], ir_mat.data, size);
 
-	realsense_infrared_image_pub.publish(ir_img);
+	ir_camera_info->header.frame_id = depth_frame_id;
+	ir_camera_info->header.stamp = head_time_stamp;
+	ir_camera_info->header.seq = head_sequence_id;
+
+	realsense_infrared_image_pub.publish(ir_img, ir_camera_info);
 }
 #endif
 
@@ -352,6 +360,7 @@ pubRealSenseRGBImageMsg(cv::Mat& rgb_mat)
 
     rgb_camera_info->header.frame_id = rgb_frame_id;
     rgb_camera_info->header.stamp = head_time_stamp;
+    rgb_camera_info->header.seq = head_sequence_id;
 
 	realsense_rgb_image_pub.publish(rgb_img, rgb_camera_info);
 
@@ -780,6 +789,8 @@ int main(int argc, char* argv[])
     std::string rgb_info_url;
     private_node_handle_.param("rgb_camera_info_url", rgb_info_url, std::string());
 
+    std::string ir_camera_info_url;
+    private_node_handle_.param("ir_camera_info_url", ir_camera_info_url, std::string());
 
     printf("\n\n===================\n"
     		"realsense_camera_type = %s\n"
@@ -799,7 +810,8 @@ int main(int argc, char* argv[])
     		"topic_image_depth_raw_id = %s\n"
     		"topic_image_infrared_raw_id = %s\n"
             "debug_depth_unit = %d\n"
-            "rgb_camera_info = %s\n"
+            "rgb_camera_info_url = %s\n"
+    		"ir_camera_info_url = %s\n"
     		"=======================\n\n",
 
 			realsense_camera_type.c_str(),
@@ -819,7 +831,8 @@ int main(int argc, char* argv[])
 			topic_image_depth_raw_id.c_str(),
 			topic_image_infrared_raw_id.c_str(),
             debug_depth_unit,
-            rgb_info_url.c_str()
+            rgb_info_url.c_str(),
+			ir_camera_info_url.c_str()
 
     		);
 
@@ -877,30 +890,6 @@ int main(int argc, char* argv[])
     	printf("use camera %s\n", useDeviceSerialNum.c_str());
     }
 
-    std::string camera_name_rgb = "realsense_camera_rgb_" + useDeviceSerialNum;
-    if (!rgb_info_url.empty())
-    {
-        rgb_info_manager = boost::make_shared<camera_info_manager::CameraInfoManager>(n, camera_name_rgb, rgb_info_url);
-        if (rgb_info_manager->isCalibrated())
-        {
-            rgb_camera_info = boost::make_shared<sensor_msgs::CameraInfo>(rgb_info_manager->getCameraInfo());
-            if (rgb_camera_info->width != rgb_frame_w || rgb_camera_info->height != rgb_frame_h)
-            {
-                ROS_WARN("RGB image resolution does not match calibration file");
-                rgb_camera_info.reset(new sensor_msgs::CameraInfo());
-                rgb_camera_info->width = rgb_frame_w;
-                rgb_camera_info->height = rgb_frame_h;
-            }
-        }
-    }
-
-    if (!rgb_camera_info)
-    {
-        rgb_camera_info = boost::shared_ptr<sensor_msgs::CameraInfo>(new sensor_msgs::CameraInfo());
-        rgb_camera_info->width = rgb_frame_w;
-        rgb_camera_info->height = rgb_frame_h;
-    }
-
     initDepthToRGBUVMap();
 
     initVideoStream();
@@ -933,6 +922,51 @@ int main(int argc, char* argv[])
         printf("video depth w,h - %d, %d\n", depth_stream.width, depth_stream.height);
     }
 
+    if (!rgb_info_url.empty())
+	{
+		std::string camera_name_rgb = "realsense_camera_rgb_" + useDeviceSerialNum;
+		camera_info_manager::CameraInfoManager rgb_info_manager(n, camera_name_rgb, rgb_info_url);
+		if (rgb_info_manager.isCalibrated())
+		{
+			rgb_camera_info = boost::make_shared<sensor_msgs::CameraInfo>(rgb_info_manager.getCameraInfo());
+			if (rgb_camera_info->width != rgb_frame_w || rgb_camera_info->height != rgb_frame_h)
+			{
+				ROS_WARN("RGB image resolution does not match calibration file");
+				rgb_camera_info.reset(new sensor_msgs::CameraInfo());
+				rgb_camera_info->width = rgb_frame_w;
+				rgb_camera_info->height = rgb_frame_h;
+			}
+		}
+	}
+	if (!rgb_camera_info)
+	{
+		rgb_camera_info.reset(new sensor_msgs::CameraInfo());
+		rgb_camera_info->width = rgb_frame_w;
+		rgb_camera_info->height = rgb_frame_h;
+	}
+
+	if (!ir_camera_info_url.empty())
+	{
+		std::string camera_name_ir = "realsense_camera_ir_" + useDeviceSerialNum;
+		camera_info_manager::CameraInfoManager ir_camera_info_manager(n, camera_name_ir, ir_camera_info_url);
+		if (ir_camera_info_manager.isCalibrated())
+		{
+			ir_camera_info = boost::make_shared<sensor_msgs::CameraInfo>(ir_camera_info_manager.getCameraInfo());
+			if (ir_camera_info->width != depth_stream.width || ir_camera_info->height != depth_stream.height)
+			{
+				ROS_WARN("IR image resolution does not match calibration file");
+				ir_camera_info.reset(new sensor_msgs::CameraInfo());
+				ir_camera_info->width = depth_stream.width;
+				ir_camera_info->height = depth_stream.height;
+			}
+		}
+	}
+	if (!ir_camera_info)
+	{
+		ir_camera_info.reset(new sensor_msgs::CameraInfo());
+		ir_camera_info->width = depth_stream.width;
+		ir_camera_info->height = depth_stream.height;
+	}
 
     printf("RealSense Camera is running!\n");
 
@@ -951,10 +985,10 @@ int main(int argc, char* argv[])
     realsense_reg_points_pub = n.advertise<sensor_msgs::PointCloud2>(topic_depth_registered_points_id, 1);
 
     realsense_rgb_image_pub = image_transport.advertiseCamera(topic_image_rgb_raw_id, 1);
-    realsense_depth_image_pub = image_transport.advertise(topic_image_depth_raw_id, 1);
+    realsense_depth_image_pub = image_transport.advertiseCamera(topic_image_depth_raw_id, 1);
 
 #ifdef V4L2_PIX_FMT_INZI
-    realsense_infrared_image_pub = image_transport.advertise(topic_image_infrared_raw_id, 1);
+    realsense_infrared_image_pub = image_transport.advertiseCamera(topic_image_infrared_raw_id, 1);
 #endif
 
     ros::Subscriber config_sub = n.subscribe("/realsense_camera_config", 1, realsenseConfigCallback);
