@@ -779,10 +779,10 @@ int main(int argc, char* argv[])
     private_node_handle_.param("topic_depth_points_id", topic_depth_points_id, std::string("/depth/points"));
     private_node_handle_.param("topic_depth_registered_points_id", topic_depth_registered_points_id, std::string("/depth_registered/points"));
 
-    private_node_handle_.param("topic_image_rgb_raw_id", topic_image_rgb_raw_id, std::string("/image/rgb_raw"));
-    private_node_handle_.param("topic_image_depth_raw_id", topic_image_depth_raw_id, std::string("/image/depth_raw"));
+    private_node_handle_.param("topic_image_rgb_raw_id", topic_image_rgb_raw_id, std::string("/rgb/image_raw"));
+    private_node_handle_.param("topic_image_depth_raw_id", topic_image_depth_raw_id, std::string("/depth/image_raw"));
 
-    private_node_handle_.param("topic_image_infrared_raw_id", topic_image_infrared_raw_id, std::string("/image/ir_raw"));
+    private_node_handle_.param("topic_image_infrared_raw_id", topic_image_infrared_raw_id, std::string("/ir/image_raw"));
 
     private_node_handle_.param("debug_depth_unit", debug_depth_unit, false);
 

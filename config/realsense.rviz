@@ -139,7 +139,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /camera/image/depth_raw
+      Image Topic: /camera/depth/image_raw
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -150,7 +150,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /camera/image/rgb_raw
+      Image Topic: /camera/rgb/image_raw
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -161,7 +161,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /camera/image/ir_raw
+      Image Topic: /camera/ir/image_raw
       Max Value: 1
       Median window: 5
       Min Value: 0

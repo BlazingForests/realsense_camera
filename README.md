@@ -5,6 +5,8 @@ use realsense camera in ROS
 
 ## New
 
+* Modify default image topic name like openni.
+
 * Add R200 support, But still in test, Because i don't have the R200 device now.
 
 * Intel maybe release official ROS-Realsense package.
@@ -83,9 +85,9 @@ sensor_msgs::PointCloud2
 /camera/depth_registered/points     point cloud with RGB
 
 sensor_msgs::Image
-/camera/image/rgb_raw               raw image for RGB sensor
-/camera/image/depth_raw             raw image for depth sensor
-/camera/image/ir_raw                raw image for infrared sensor
+/camera/rgb/image_raw               raw image for RGB sensor
+/camera/depth/image_raw             raw image for depth sensor
+/camera/ir/image_raw                raw image for infrared sensor
 ```
 
 you can custom topic in file realsense_camera.launch
@@ -94,19 +96,21 @@ you can custom topic in file realsense_camera.launch
 <arg name="topic_depth_points_id" default="$(arg camera)/depth/points" />
 <arg name="topic_depth_registered_points_id" default="$(arg camera)/depth_registered/points" />
     
-<arg name="topic_image_rgb_raw_id" default="$(arg camera)/image/rgb_raw" />
-<arg name="topic_image_depth_raw_id" default="$(arg camera)/image/depth_raw" />
-<arg name="topic_image_infrared_raw_id" default="$(arg camera)/image/ir_raw" />
+<arg name="topic_image_rgb_raw_id" default="$(arg camera)/rgb/image_raw" />
+<arg name="topic_image_depth_raw_id" default="$(arg camera)/depth/image_raw" />
+<arg name="topic_image_infrared_raw_id" default="$(arg camera)/ir/image_raw" />
 ```
 
 ### Camera Info
-To specify a yaml file with intrinsic calibration parameters for the RGB camera (for example generated using [this](http://wiki.ros.org/camera_calibration/Tutorials/MonocularCalibration) tool), add a parameter in the realsense_camera.launch file as follows inside the `realsense_node` tag:
+To specify a yaml file with intrinsic calibration parameters for the RGB & IR camera (for example generated using [this](http://wiki.ros.org/camera_calibration/Tutorials/MonocularCalibration) tool), modify the value in the realsense_(r200_)camera.launch to your calibration file (eg. package://package_name/path_to_yaml_file/calibration_file.yaml )
 ```
-<param name="rgb_camera_info_url" value="package://package_name/path_to_yaml_file/calibration_file.yaml" />
+<!-- camera calibration file url -->
+<arg name="rgb_camera_info_url" default="" />
+<arg name="ir_camera_info_url" default="" />
 ```
 Make sure the image width and height specified in the calibration file is the same as that specified in launch file.
 
-The calibration info will be published under the topic  `/camera/image/camera_info`
+The calibration info will be published under the topic  `/camera/rgb/camera_info` `/camera/depth/camera_info` `/camera/ir/camera_info`
 
 
 ## Q&A
