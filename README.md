@@ -99,6 +99,16 @@ you can custom topic in file realsense_camera.launch
 <arg name="topic_image_infrared_raw_id" default="$(arg camera)/image/ir_raw" />
 ```
 
+### Camera Info
+To specify a yaml file with intrinsic calibration parameters for the RGB camera (for example generated using [this](http://wiki.ros.org/camera_calibration/Tutorials/MonocularCalibration) tool), add a parameter in the realsense_camera.launch file as follows inside the `realsense_node` tag:
+```
+<param name="rgb_camera_info_url" value="package://package_name/path_to_yaml_file/calibration_file.yaml" />
+```
+Make sure the image width and height specified in the calibration file is the same as that specified in launch file.
+
+The calibration info will be published under the topic  `/camera/image/camera_info`
+
+
 ## Q&A
 
 * If have "select timeout" issue
