@@ -32,7 +32,9 @@
     <!-- debug depth unit -->
     <arg name="debug_depth_unit" default="false" />
 
-    
+	<!-- camera calibration file url -->
+    <arg name="rgb_camera_info_url" default="" />
+    <arg name="ir_camera_info_url" default="" />
 
     <node name="realsense_node" pkg="realsense_camera" type="realsense_camera_node" output="screen">
     	<param name="realsense_camera_type" value="$(arg realsense_camera_type)" />
@@ -62,6 +64,9 @@
         
         <param name="debug_depth_unit" value="$(arg debug_depth_unit)" />
 
+		<param name="rgb_camera_info_url" value="$(arg rgb_camera_info_url)" />
+        <param name="ir_camera_info_url" value="$(arg ir_camera_info_url)" />
+        
     </node>
     
     <include file="$(find realsense_camera)/launch/realsense_frames.launch">
