@@ -39,9 +39,6 @@
 #define USE_BGR24 0
 
 
-using namespace cv;
-using namespace std;
-
 typedef pcl::PointXYZ       PointXYZT;
 typedef pcl::PointXYZRGB    PointXYZRGBT;
 typedef pcl::PointXYZRGBA   PointXYZRGBAT;
@@ -197,7 +194,7 @@ initDepthToRGBUVMap()
         {
             int len = uvmapFile.tellg();
             char *uvmapValue = new char[len];
-            uvmapFile.seekg(0, ios::beg);
+            uvmapFile.seekg(0, std::ios::beg);
             uvmapFile.read(uvmapValue, len);
             uvmapFile.close();
 
