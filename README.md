@@ -5,6 +5,22 @@ use realsense camera in ROS
 
 ## New
 
+* [2015/11/26] Add print center Z value and realsense temperature at the same time for `F200`.  
+Can use to calibration Z value with realsense's temperature(Thx to @teknotus).
+
+```
+0) sudo apt-get install libusb-1.0-0-dev  
+1) sudo cp config/80-realsense-usb.rules /etc/udev/rules.d  
+2) reboot to reload the rule  
+3) rebuild realsense_camera  
+4) roslaunch realsense_camera realsense_rviz.launch debug_depth_unit:=true
+
+If everything is OK, in terminal you will see  
+
+getRealsenseUSBHandle OK!  
+average center z value = 0.388359    temp = 31    depth_unit = 33.099998
+```
+
 * Modify default image topic name like openni.
 
 * Add R200 support, But still in test, Because i don't have the R200 device now.
@@ -53,7 +69,7 @@ realsense_camera
 ## Dependencies
 
 ```
-sudo apt-get install libudev-dev libv4l-dev
+sudo apt-get install libudev-dev libv4l-dev libusb-1.0-0-dev
 ```
 
 To make sure the dynamic reconfigure works, Please visit
@@ -66,7 +82,7 @@ https://github.com/teknotus/depthview/tree/udev
 
 * launch realsense camera and rviz
 ```
-roslaunch realsense_camera realsense_rviz.launch 
+roslaunch realsense_camera realsense_rviz.launch
 ```
 
 * launch realsense camera only
@@ -95,7 +111,7 @@ you can custom topic in file realsense_camera.launch
 ```
 <arg name="topic_depth_points_id" default="$(arg camera)/depth/points" />
 <arg name="topic_depth_registered_points_id" default="$(arg camera)/depth_registered/points" />
-    
+
 <arg name="topic_image_rgb_raw_id" default="$(arg camera)/rgb/image_raw" />
 <arg name="topic_image_depth_raw_id" default="$(arg camera)/depth/image_raw" />
 <arg name="topic_image_infrared_raw_id" default="$(arg camera)/ir/image_raw" />
@@ -144,5 +160,3 @@ terminate called after throwing an instance of 'boost::exception_detail::clone_i
 ```
 //fill point cloud data time: [0.035777 s]     <----  need optimize
 ```
-
-

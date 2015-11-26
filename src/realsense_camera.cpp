@@ -32,6 +32,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <realsense_camera/RealsenseCameraConfig.h>
 
+#include <libusb-1.0/libusb.h>
 
 
 #define SHOW_RGBD_FRAME 0
@@ -160,6 +161,102 @@ int		center_z_count = 0;
 float	center_offset_pixel = 5.f;
 
 
+// get temperature
+libusb_context *usbContext = NULL;
+libusb_device_handle *usbHandle = NULL;
+unsigned char realsenseTemperature = 0;
+
+void getRealsenseUSBHandle(libusb_context*& context, libusb_device_handle*& handle, std::string& useSerialNumber)
+{
+	libusb_device **dev_list = NULL;
+	libusb_device_handle *dh = NULL;
+
+	int status = -1;
+	status = libusb_init(&context);
+	if(status < 0)
+	{
+		printf("libusb init error\n");
+		return;
+	}
+
+	ssize_t count = -1;
+	count = libusb_get_device_list(context, &dev_list);
+	if(count < 0)
+	{
+		printf("get device list error\n");
+	}
+
+	for(int i = 0 ; i < count ; ++i)
+	{
+		struct libusb_device_descriptor descriptor;
+		status = libusb_get_device_descriptor(dev_list[i], &descriptor);
+		if(status < 0)
+		{
+		    printf("error getting descriptor\n");
+		    continue;
+		}
+
+		if(0x8086 == descriptor.idVendor && 0x0a66 == descriptor.idProduct)
+		{
+			printf("found realsense camera usb device\n");
+			status = libusb_open(dev_list[i], &dh);
+			if(status < 0){
+				printf("failed to open realsense camera usb device\n");
+				continue;
+			}
+			else
+			{
+				unsigned char serialNumberStr[256];
+				status = libusb_get_string_descriptor_ascii(dh, descriptor.iSerialNumber, serialNumberStr, sizeof(serialNumberStr));
+				std::string usbSNName = (const char *)serialNumberStr;
+				if(useSerialNumber == usbSNName)
+				{
+					status = libusb_claim_interface(dh,4);
+					if(status < 0)
+					{
+						printf("could not claim interface\n");
+						libusb_close(dh);
+						continue;
+					}
+					else
+					{
+						handle = dh;
+						libusb_free_device_list(dev_list, 1);
+						break;
+					}
+				}
+				else
+				{
+					libusb_close(dh);
+					continue;
+				}
+			}
+		}
+	}
+
+}
+
+
+unsigned char getRealsenseTemperature(libusb_device_handle *dh){
+  int transferred,status;
+
+  unsigned char data[24] = {
+    0x14, 0x00, 0xab, 0xcd, 0x52, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+  };
+  unsigned char buffer[1024];
+  status = libusb_bulk_transfer(dh,1,data,24,&transferred,0);
+  if(status < 0){
+    fprintf(stderr, "bulk out failed\n");
+  }
+  status = libusb_bulk_transfer(dh,0x81,buffer,1024,&transferred,0);
+  if(status < 0){
+    fprintf(stderr, "bulk in failed\n");
+  } else {
+    return buffer[4];
+  }
+}
 
 
 void
@@ -617,8 +714,12 @@ processRGBD()
 
     if(debug_depth_unit && center_z_count)
     {
+    	if(usbContext && usbHandle)
+    	{
+    		realsenseTemperature = getRealsenseTemperature(usbHandle);
+    	}
     	center_z /= center_z_count;
-    	printf("average center z value = %f    depth_unit = %f\n", center_z, depth_unit);
+    	printf("average center z value = %f    temp = %d    depth_unit = %f\n", center_z, realsenseTemperature, depth_unit);
     	center_z_count = 0;
     }
 
@@ -965,6 +1066,15 @@ int main(int argc, char* argv[])
 		ir_camera_info->height = depth_stream.height;
 	}
 
+	if(debug_depth_unit && realsense_camera_type == "Intel(R) RealSense(TM) 3D Camer")
+	{
+		getRealsenseUSBHandle(usbContext, usbHandle, useDeviceSerialNum);
+		if(usbContext && usbHandle)
+		{
+			printf("getRealsenseUSBHandle OK!\n");
+		}
+	}
+
     printf("RealSense Camera is running!\n");
 
 #if USE_BGR24
@@ -1026,6 +1136,12 @@ int main(int argc, char* argv[])
 #ifdef V4L2_PIX_FMT_INZI
     delete[] ir_frame_buffer;
 #endif
+
+    if(debug_depth_unit)
+    {
+    	libusb_close(usbHandle);
+    	libusb_exit(usbContext);
+    }
 
     printf("RealSense Camera is shutdown!\n");
 

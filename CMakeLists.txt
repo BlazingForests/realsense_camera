@@ -28,6 +28,7 @@ find_package(PCL 1.7 REQUIRED COMPONENTS
     io
 )
 
+
 generate_dynamic_reconfigure_options(
   config/RealsenseCamera.cfg
 )
@@ -187,6 +188,7 @@ target_link_libraries(realsense_camera_node
   ${PCL_LIBRARIES}
   -ludev
   -lv4l2
+  -lusb-1.0
 )
 
 
@@ -215,6 +217,12 @@ install(
     realsense_camera_node
     realsense_camera_config_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(
+  FILES
+    config/80-realsense-usb.rules
+  DESTINATION /etc/udev/rules.d
 )
 
 ## Mark cpp header files for installation
