@@ -15,6 +15,12 @@ find_package(catkin REQUIRED COMPONENTS
   tf
 )
 
+# V4L2, udev and libusb
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(V4L REQUIRED libv4l2)
+pkg_check_modules(UDEV REQUIRED libudev)
+pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
+
 # OpenCV
 find_package(OpenCV REQUIRED)
 if (OPENCV_FOUND)
@@ -137,6 +143,9 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
+  ${V4L_INCLUDE_DIRS}
+  ${UDEV_INCLUDE_DIRS}
+  ${LIBUSB_INCLUDE_DIRS}
 )
 
 
@@ -186,9 +195,9 @@ target_link_libraries(realsense_camera_node
   ${catkin_LIBRARIES}
   ${OpenCV_LIBS}
   ${PCL_LIBRARIES}
-  -ludev
-  -lv4l2
-  -lusb-1.0
+  ${V4L_LIBRARIES}
+  ${UDEV_LIBRARIES}
+  ${LIBUSB_LIBRARIES}
 )
 
 
@@ -233,11 +242,22 @@ install(
 # )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
-#   # myfile1
-#   # myfile2
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
+install(FILES
+    launch/realsense_camera.launch
+    launch/realsense_camera_config.launch
+    launch/realsense_frames.launch
+    launch/realsense_r200_camera.launch 
+    launch/realsense_r200_rviz.launch
+    launch/realsense_rviz.launch
+    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+)
+
+install(FILES
+    config/realsense.rviz
+    config/RealsenseCamera.cfg
+    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
+)
+
 
 #############
 ## Testing ##
