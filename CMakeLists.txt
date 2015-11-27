@@ -242,11 +242,22 @@ install(
 # )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
-#   # myfile1
-#   # myfile2
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
+install(FILES
+    launch/realsense_camera.launch
+    launch/realsense_camera_config.launch
+    launch/realsense_frames.launch
+    launch/realsense_r200_camera.launch 
+    launch/realsense_r200_rviz.launch
+    launch/realsense_rviz.launch
+    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+)
+
+install(FILES
+    config/realsense.rviz
+    config/RealsenseCamera.cfg
+    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
+)
+
 
 #############
 ## Testing ##
