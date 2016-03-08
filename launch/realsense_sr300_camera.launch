@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<launch>
+    <arg name="realsense_camera_type" default="Intel(R) RealSense(TM) Camera S" />
+
+    <include file="$(find realsense_camera)/launch/realsense_camera.launch">
+        <arg name="realsense_camera_type" value="$(arg realsense_camera_type)" />
+    </include>
+</launch>
