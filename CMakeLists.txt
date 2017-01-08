@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   image_transport
   message_generation
+  pcl_conversions
   roscpp
   roslib
   std_msgs
@@ -164,14 +165,14 @@ add_definitions(
 ## Declare a cpp executable
 # add_executable(realsense_camera_node src/realsense_camera_node.cpp)
 
-add_executable(realsense_camera_node 
+add_executable(realsense_camera_node
   src/realsense_camera.cpp
   src/capturer_mmap.cpp
   src/v4l_unit.cpp
   src/udev_unit.cpp
 )
 
-add_executable(realsense_camera_config_node 
+add_executable(realsense_camera_config_node
   src/realsense_camera_config.cpp
 )
 
@@ -246,7 +247,7 @@ install(FILES
     launch/realsense_camera.launch
     launch/realsense_camera_config.launch
     launch/realsense_frames.launch
-    launch/realsense_r200_camera.launch 
+    launch/realsense_r200_camera.launch
     launch/realsense_r200_rviz.launch
     launch/realsense_rviz.launch
     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch

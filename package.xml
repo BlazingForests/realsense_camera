@@ -8,7 +8,7 @@
     publish point cloud msg
   </description>
 
-  <!-- One maintainer tag required, multiple allowed, one person per tag --> 
+  <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
 
@@ -52,6 +52,8 @@
   <build_depend>tf</build_depend>
   <build_depend>roslib</build_depend>
   <build_depend>message_generation</build_depend>
+  <build_depend>pcl_conversions</build_depend>
+
   <run_depend>roscpp</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>
