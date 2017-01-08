@@ -1,3 +1,15 @@
+# Note
+Thank you for your concern.
+Since i don't have time to update this repo, also intel has release their own official version.
+So if you want to support all the types of RealSense camera please visit
+https://github.com/intel-ros/realsense
+https://github.com/IntelRealSense/librealsense
+
+This repo will change to research. 
+
+THX
+DD
+
 # realsense_camera
 use realsense camera in ROS
 
